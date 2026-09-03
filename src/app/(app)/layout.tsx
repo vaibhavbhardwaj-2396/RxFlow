@@ -9,7 +9,6 @@ import { SignOutButton } from "@/components/app/sign-out-button";
 import { localToday } from "@/domain/time";
 import { env, isProd } from "@/env";
 import { auth } from "@/server/auth";
-import { prisma } from "@/server/db/client";
 import { unreadNotificationCount } from "@/server/notifications/queries";
 import { getRequestClock, getSimNow } from "@/server/time/request-clock";
 
@@ -19,20 +18,19 @@ const DevToolbar = isProd
       import("@/components/dev/dev-toolbar").then((m) => m.DevToolbar),
     );
 
+async function UnreadBell({ userId }: { userId: string }) {
+  const unread = await unreadNotificationCount(userId);
+  return <NotificationBell count={unread} />;
+}
+
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const session = await auth();
   if (!session?.user) redirect("/sign-in");
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { displayName: true, email: true, timezone: true, isDemo: true },
-  });
-  if (!user) redirect("/sign-in");
+  const { id, email, displayName, timezone, isDemo } = session.user;
 
   const clock = await getRequestClock();
-  const effectiveDate = localToday(clock, user.timezone);
+  const effectiveDate = localToday(clock, timezone);
   const simNow = await getSimNow();
-  const unread = await unreadNotificationCount(session.user.id);
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-2xl flex-col">
@@ -48,17 +46,17 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <span className="font-display text-lg font-semibold text-ink">
             RxFlow
           </span>
-          {user.isDemo && (
+          {isDemo && (
             <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-accent">
               Demo
             </span>
           )}
         </div>
         <div className="flex items-center gap-2 text-sm text-ink-muted">
-          <span className="hidden sm:inline">
-            {user.displayName ?? user.email}
-          </span>
-          <NotificationBell count={unread} />
+          <span className="hidden sm:inline">{displayName ?? email}</span>
+          <Suspense fallback={<NotificationBell count={0} />}>
+            <UnreadBell userId={id} />
+          </Suspense>
           <SignOutButton />
         </div>
       </header>

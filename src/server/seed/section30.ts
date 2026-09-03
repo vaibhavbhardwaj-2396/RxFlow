@@ -17,9 +17,7 @@ import { hashPassword } from "@/server/auth/password";
  * `/api/internal/demo-reset` route (the live self-resetting demo).
  */
 
-export const DEMO_EMAIL = "demo@regimen.test";
-export const DEMO_PASSWORD = "regimen-demo";
-export const DEMO_DISPLAY_NAME = "Demo";
+export { DEMO_EMAIL, DEMO_PASSWORD, DEMO_DISPLAY_NAME } from "./constants";
 
 const TZ = "Asia/Kolkata";
 const DEFAULT_TIMES: Record<string, string> = {

@@ -23,6 +23,7 @@ export function TreatmentList({
         <li key={t.id}>
           <Link
             href={`/treatments/${t.id}`}
+            prefetch
             className="block rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-ink-faint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
           >
             <div className="flex items-start justify-between gap-3">

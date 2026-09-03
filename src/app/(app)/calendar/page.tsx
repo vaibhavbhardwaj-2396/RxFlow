@@ -9,7 +9,6 @@ import { WeekGridView } from "@/components/calendar/week-grid";
 import { localToday, plainDate } from "@/domain/time";
 import { monthGrid, startOfMonth, weekDays } from "@/lib/calendar-grid";
 import { auth } from "@/server/auth";
-import { prisma } from "@/server/db/client";
 import {
   getDayBoard,
   getMonthGrid,
@@ -31,14 +30,8 @@ export default async function CalendarPage({
   const session = await auth();
   if (!session?.user?.id) redirect("/sign-in");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { timezone: true },
-  });
-  if (!user) redirect("/sign-in");
-
   const clock = await getRequestClock(sp.now);
-  const today = localToday(clock, user.timezone);
+  const today = localToday(clock, session.user.timezone);
   const view =
     sp.view === "day" || sp.view === "month" ? sp.view : ("week" as const);
   const date = sp.date && DATE_RE.test(sp.date) ? sp.date : today;

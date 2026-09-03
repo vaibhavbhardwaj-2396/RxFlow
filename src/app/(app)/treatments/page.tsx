@@ -8,7 +8,6 @@ import { buttonClass } from "@/components/ui/button";
 import { localToday } from "@/domain/time";
 import { env } from "@/env";
 import { auth } from "@/server/auth";
-import { prisma } from "@/server/db/client";
 import { listTreatmentsForUser } from "@/server/treatments/queries";
 import { getRequestClock } from "@/server/time/request-clock";
 
@@ -24,14 +23,8 @@ export default async function TreatmentsPage({
   const session = await auth();
   if (!session?.user?.id) redirect("/sign-in");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { timezone: true },
-  });
-  if (!user) redirect("/sign-in");
-
   const clock = await getRequestClock(now);
-  const today = localToday(clock, user.timezone);
+  const today = localToday(clock, session.user.timezone);
   const treatments = await listTreatmentsForUser(session.user.id, today);
 
   return (

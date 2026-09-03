@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { env } from "@/env";
-import { auth } from "@/server/auth";
+import { auth, unstable_update } from "@/server/auth";
 import { prisma } from "@/server/db/client";
 import { reresolveFutureOccurrences } from "@/server/occurrences/reresolve";
 
@@ -77,12 +77,7 @@ export async function updateProfileAction(
     return { error: parsed.error.issues[0]?.message ?? "Check the form." };
   }
   const { displayName, timezone } = parsed.data;
-
-  const current = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { timezone: true },
-  });
-  const timezoneChanged = Boolean(current && current.timezone !== timezone);
+  const timezoneChanged = session.user.timezone !== timezone;
 
   await prisma.user.update({
     where: { id: session.user.id },
@@ -94,6 +89,11 @@ export async function updateProfileAction(
       timezoneChanged: true,
     });
   }
+
+  // Refresh the JWT-carried copy so pages don't need a re-login.
+  await unstable_update({
+    user: { timezone, displayName: displayName || null },
+  });
 
   revalidatePath("/settings");
   revalidatePath("/dashboard");

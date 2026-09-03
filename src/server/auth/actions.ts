@@ -6,7 +6,7 @@ import { demoEnabled } from "@/env";
 import { credentialsSchema, registerSchema } from "@/lib/validation/auth";
 import { signIn, signOut } from "@/server/auth";
 import { prisma } from "@/server/db/client";
-import { DEMO_EMAIL, DEMO_PASSWORD } from "@/server/seed/section30";
+import { DEMO_EMAIL, DEMO_PASSWORD } from "@/server/seed/constants";
 import { provisionUser } from "@/server/users/provision";
 
 export interface AuthFormState {
