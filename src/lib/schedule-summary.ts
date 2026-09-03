@@ -66,10 +66,8 @@ function describeWeekdays(weekdays: number[]): string {
   return joinList(set.map((wd) => `${WEEKDAY_NAMES[wd - 1]}s`));
 }
 
-/**
- * The active span in plain language. M2 treatments have one ACTIVE phase that
- * repeats `once`; richer cycles get a fuller description in M6.
- */
+/** The active span in plain language — a date range for a simple window, or a
+ * segment summary ("20 days on · 7 off · 20 on, ×2") for a repeating cycle. */
 export function describeWindow(anchor: PlainDate, cycle: PhaseCycle): string {
   const [phase, ...rest] = cycle.phases;
   const isSimple =
@@ -77,7 +75,8 @@ export function describeWindow(anchor: PlainDate, cycle: PhaseCycle): string {
     rest.length === 0 &&
     phase?.kind === "active";
 
-  if (!isSimple || !phase) return "Repeating cycle";
+  if (!phase) return "—";
+  if (!isSimple) return describeCycle(cycle);
 
   const start = fmtDate(anchor);
   const d = phase.duration;
@@ -104,6 +103,47 @@ export function describeWindow(anchor: PlainDate, cycle: PhaseCycle): string {
 function rangeLabel(start: PlainDate, end: PlainDate): string {
   const sameYear = start.slice(0, 4) === end.slice(0, 4);
   return `${fmtDate(start, !sameYear)} – ${fmtDate(end)}`;
+}
+
+const UNIT_LABEL: Record<string, [one: string, many: string]> = {
+  days: ["day", "days"],
+  weeks: ["week", "weeks"],
+  months: ["month", "months"],
+};
+
+function segmentLabel(
+  duration: PhaseCycle["phases"][number]["duration"],
+  side: "on" | "off",
+  showUnit: boolean,
+): string {
+  const value = "value" in duration ? duration.value : 0;
+  const [one, many] = UNIT_LABEL[duration.kind] ?? ["", ""];
+  const unit = showUnit ? ` ${value === 1 ? one : many}` : "";
+  return `${value}${unit} ${side}`;
+}
+
+/** "20 days on · 7 off · 20 on, ×2" / "1 week on / 1 week off, ongoing". */
+export function describeCycle(cycle: PhaseCycle): string {
+  const firstUnit = cycle.phases[0]?.duration.kind;
+  const parts = cycle.phases.map((p, i) =>
+    segmentLabel(
+      p.duration,
+      p.kind === "active" ? "on" : "off",
+      i === 0 || p.duration.kind !== firstUnit,
+    ),
+  );
+  const body = parts.join(" · ");
+
+  switch (cycle.repeat.mode) {
+    case "once":
+      return body;
+    case "count":
+      return `${body}, ×${cycle.repeat.count}`;
+    case "until":
+      return `${body}, until ${fmtDate(cycle.repeat.date)}`;
+    case "forever":
+      return `${body}, ongoing`;
+  }
 }
 
 /** Dose times as a phrase: "08:00", "After dinner (20:00) & before sleep (22:30)". */

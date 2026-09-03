@@ -229,7 +229,7 @@ function build(
   try {
     const anchor = plainDate(d.anchorDate);
     const rule = recurrenceRuleFromInput(d.recurrence, anchor);
-    const cycle = phaseCycleFromInput(d.duration);
+    const cycle = phaseCycleFromInput(d.window);
     const specs = doseSpecsFromInput(d.doseTimes);
     const occurrences = generateOccurrences({
       anchor,

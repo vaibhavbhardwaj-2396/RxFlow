@@ -85,15 +85,37 @@ describe("describeWindow", () => {
     ).toBe("20 Dec 2026 – 16 Jan 2027");
   });
 
-  it("falls back for a multi-phase cycle", () => {
-    const cycle: PhaseCycle = {
-      phases: [
-        { kind: "active", duration: { kind: "days", value: 20 } },
-        { kind: "break", duration: { kind: "days", value: 7 } },
-      ],
-      repeat: { mode: "forever" },
-    };
-    expect(describeWindow(anchor, cycle)).toBe("Repeating cycle");
+  it("describes a repeating cycle by its segments", () => {
+    expect(
+      describeWindow(anchor, {
+        phases: [
+          { kind: "active", duration: { kind: "days", value: 20 } },
+          { kind: "break", duration: { kind: "days", value: 7 } },
+          { kind: "active", duration: { kind: "days", value: 20 } },
+        ],
+        repeat: { mode: "once" },
+      }),
+    ).toBe("20 days on · 7 off · 20 on");
+
+    expect(
+      describeWindow(anchor, {
+        phases: [
+          { kind: "active", duration: { kind: "weeks", value: 1 } },
+          { kind: "break", duration: { kind: "weeks", value: 1 } },
+        ],
+        repeat: { mode: "count", count: 3 },
+      }),
+    ).toBe("1 week on · 1 off, ×3");
+
+    expect(
+      describeWindow(anchor, {
+        phases: [
+          { kind: "active", duration: { kind: "days", value: 10 } },
+          { kind: "break", duration: { kind: "days", value: 5 } },
+        ],
+        repeat: { mode: "forever" },
+      }),
+    ).toBe("10 days on · 5 off, ongoing");
   });
 });
 

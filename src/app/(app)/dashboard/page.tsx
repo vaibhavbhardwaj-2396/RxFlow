@@ -5,11 +5,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { TodayBoard } from "@/components/dashboard/today-board";
+import { WhatsChanging } from "@/components/dashboard/whats-changing";
 import { buttonClass } from "@/components/ui/button";
 import { localToday } from "@/domain/time";
 import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/client";
 import { getTodayBoard } from "@/server/occurrences/queries";
+import { getUpcomingChanges } from "@/server/treatments/changes";
 import { getRequestClock } from "@/server/time/request-clock";
 
 export const metadata: Metadata = { title: "Today" };
@@ -29,11 +31,10 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
   const clock = await getRequestClock(now);
   const today = localToday(clock, user.timezone);
   const heading = DateTime.fromISO(today).toFormat("cccc, d LLLL yyyy");
-  const board = await getTodayBoard(
-    session.user.id,
-    today,
-    clock.now().toJSDate(),
-  );
+  const [board, changes] = await Promise.all([
+    getTodayBoard(session.user.id, today, clock.now().toJSDate()),
+    getUpcomingChanges(session.user.id, today),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -77,7 +78,10 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
           </Link>
         </section>
       ) : (
-        <TodayBoard board={board} />
+        <>
+          <TodayBoard board={board} />
+          <WhatsChanging changes={changes} />
+        </>
       )}
     </div>
   );

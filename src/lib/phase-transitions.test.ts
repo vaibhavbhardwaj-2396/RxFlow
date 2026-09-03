@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { PhaseCycle } from "@/domain/scheduling";
 import { plainDate } from "@/domain/time";
 
-import { phaseTransitionsInRange } from "./phase-transitions";
+import { phaseTransitionsInRange, upcomingChanges } from "./phase-transitions";
 
 const anchor = plainDate("2026-09-07");
 
@@ -63,6 +63,87 @@ describe("phaseTransitionsInRange", () => {
         },
         plainDate("2026-09-01"),
         plainDate("2027-09-01"),
+      ),
+    ).toEqual([]);
+  });
+});
+
+describe("upcomingChanges", () => {
+  const foreverActive: PhaseCycle = {
+    phases: [{ kind: "active", duration: { kind: "forever" } }],
+    repeat: { mode: "once" },
+  };
+
+  it("surfaces Ointment B's break start and resume with days-away", () => {
+    const changes = upcomingChanges(
+      "t1",
+      "Ointment B",
+      anchor,
+      ointmentB,
+      plainDate("2026-09-24"),
+      45,
+    );
+    expect(changes.map((c) => [c.kind, c.date, c.daysAway])).toEqual([
+      ["break-start", "2026-09-27", 3],
+      ["break-end", "2026-10-04", 10],
+      ["ends", "2026-10-24", 30],
+    ]);
+    expect(changes[0].label).toBe("Ointment B — break starts 27 Sep");
+  });
+
+  it("reports a bounded treatment finishing", () => {
+    const changes = upcomingChanges(
+      "t2",
+      "Ointment A",
+      anchor,
+      {
+        phases: [{ kind: "active", duration: { kind: "months", value: 2 } }],
+        repeat: { mode: "once" },
+      },
+      plainDate("2026-10-20"),
+      30,
+    );
+    expect(changes).toEqual([
+      {
+        treatmentId: "t2",
+        treatmentName: "Ointment A",
+        date: "2026-11-07",
+        daysAway: 18,
+        kind: "ends",
+        label: "Ointment A finishes 7 Nov",
+      },
+    ]);
+  });
+
+  it("reports a future treatment starting", () => {
+    const changes = upcomingChanges(
+      "t3",
+      "New pill",
+      plainDate("2026-09-20"),
+      foreverActive,
+      plainDate("2026-09-07"),
+      45,
+    );
+    expect(changes).toEqual([
+      {
+        treatmentId: "t3",
+        treatmentName: "New pill",
+        date: "2026-09-20",
+        daysAway: 13,
+        kind: "starts",
+        label: "New pill starts 20 Sep",
+      },
+    ]);
+  });
+
+  it("is empty for an ongoing daily treatment", () => {
+    expect(
+      upcomingChanges(
+        "t4",
+        "Vitamin",
+        anchor,
+        foreverActive,
+        plainDate("2026-09-10"),
       ),
     ).toEqual([]);
   });

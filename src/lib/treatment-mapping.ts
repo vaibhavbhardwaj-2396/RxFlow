@@ -5,12 +5,14 @@ import type {
   RecurrenceRule,
   Weekday,
 } from "@/domain/scheduling";
+import { needsConfirmation } from "@/domain/scheduling";
 import { type PlainDate, plainDate } from "@/domain/time";
 
 import type {
   DoseTimeInput,
   DurationInput,
   RecurrenceInput,
+  WindowInput,
 } from "./validation/treatment";
 
 // Pure transforms from validated wizard input to the domain shapes the engine
@@ -40,10 +42,12 @@ export function recurrenceRuleFromInput(
       };
     case "interval_days":
       return { type: "interval_days", anchor, interval: input.interval };
+    case "times_per_week":
+      return { type: "times_per_week", anchor, count: input.count };
   }
 }
 
-export function durationFromInput(input: DurationInput): Duration {
+function durationFromInput(input: DurationInput): Duration {
   switch (input.kind) {
     case "days":
       return { kind: "days", value: input.value };
@@ -58,11 +62,28 @@ export function durationFromInput(input: DurationInput): Duration {
   }
 }
 
-/** M2: one ACTIVE phase, `repeat: once`. */
-export function phaseCycleFromInput(input: DurationInput): PhaseCycle {
+/** The active-availability model for a treatment. `simple` → one ACTIVE phase,
+ * `repeat: once`; `cycle` → the user's ACTIVE/BREAK segments + repeat. */
+export function phaseCycleFromInput(window: WindowInput): PhaseCycle {
+  if (window.kind === "simple") {
+    return {
+      phases: [
+        { kind: "active", duration: durationFromInput(window.duration) },
+      ],
+      repeat: { mode: "once" },
+    };
+  }
   return {
-    phases: [{ kind: "active", duration: durationFromInput(input) }],
-    repeat: { mode: "once" },
+    phases: window.segments.map((s) => ({
+      kind: s.phase,
+      duration: { kind: s.unit, value: s.value },
+    })),
+    repeat:
+      window.repeat.mode === "count"
+        ? { mode: "count", count: window.repeat.count }
+        : window.repeat.mode === "until"
+          ? { mode: "until", date: plainDate(window.repeat.date) }
+          : { mode: window.repeat.mode },
   };
 }
 
@@ -104,21 +125,31 @@ export interface TreatmentCreateData {
 export function toCreateData(input: {
   anchorDate: string;
   recurrence: RecurrenceInput;
-  duration: DurationInput;
+  window: WindowInput;
   doseTimes: DoseTimeInput[];
 }): TreatmentCreateData {
+  const anchor = plainDate(input.anchorDate);
+  const rule = recurrenceRuleFromInput(input.recurrence, anchor);
+  const cycle = phaseCycleFromInput(input.window);
+
   return {
     recurrence: {
-      type: input.recurrence.kind,
-      config: configFromInput(input.recurrence),
+      type: rule.type,
+      config: configFromRule(rule),
       recurrenceAnchor: input.anchorDate,
-      needsConfirmation: false,
+      needsConfirmation: needsConfirmation(rule),
     },
     phaseCycle: {
-      repeatMode: "once",
-      repeatCount: null,
-      repeatUntil: null,
-      phases: [phaseFromDuration(input.duration)],
+      repeatMode: cycle.repeat.mode,
+      repeatCount: cycle.repeat.mode === "count" ? cycle.repeat.count : null,
+      repeatUntil: cycle.repeat.mode === "until" ? cycle.repeat.date : null,
+      phases: cycle.phases.map((p, orderIndex) => ({
+        orderIndex,
+        kind: p.kind,
+        durationKind: p.duration.kind,
+        durationValue: "value" in p.duration ? p.duration.value : null,
+        durationUntil: p.duration.kind === "until" ? p.duration.date : null,
+      })),
     },
     doseTimes: input.doseTimes.map((d, orderIndex) => ({
       orderIndex,
@@ -129,31 +160,21 @@ export function toCreateData(input: {
   };
 }
 
-function configFromInput(input: RecurrenceInput): Record<string, unknown> {
-  switch (input.kind) {
+export function configFromRule(rule: RecurrenceRule): Record<string, unknown> {
+  switch (rule.type) {
     case "daily":
       return {};
     case "specific_weekdays":
-      return { weekdays: sortWeekdays(input.weekdays) };
+      return { weekdays: sortWeekdays(rule.weekdays) };
     case "interval_days":
-      return { interval: input.interval };
+      return { interval: rule.interval };
+    case "times_per_week":
+      return rule.weekdays
+        ? { count: rule.count, weekdays: sortWeekdays(rule.weekdays) }
+        : { count: rule.count };
   }
 }
 
-function phaseFromDuration(
-  input: DurationInput,
-): TreatmentCreateData["phaseCycle"]["phases"][number] {
-  const numeric =
-    input.kind === "days" || input.kind === "weeks" || input.kind === "months";
-  return {
-    orderIndex: 0,
-    kind: "active",
-    durationKind: input.kind === "ongoing" ? "forever" : input.kind,
-    durationValue: numeric ? input.value : null,
-    durationUntil: input.kind === "until" ? input.date : null,
-  };
-}
-
-function sortWeekdays(weekdays: number[]): Weekday[] {
+function sortWeekdays(weekdays: readonly number[]): Weekday[] {
   return [...weekdays].sort((a, b) => a - b) as Weekday[];
 }

@@ -4,10 +4,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { TreatmentWizard } from "@/components/treatments/treatment-wizard";
-import {
-  draftFromRecord,
-  isCycleEditable,
-} from "@/components/treatments/wizard-draft";
+import { draftFromRecord } from "@/components/treatments/wizard-draft";
 import { localToday } from "@/domain/time";
 import type { TreatmentCategoryValue } from "@/lib/validation/treatment";
 import { auth } from "@/server/auth";
@@ -78,18 +75,6 @@ export default async function EditTreatmentPage({
       {treatment.name}
     </Link>
   );
-
-  if (!isCycleEditable(cycle)) {
-    return (
-      <div className="flex flex-col gap-5">
-        {back}
-        <p className="rounded-2xl border border-line bg-surface p-4 text-sm text-ink-muted">
-          Editing a repeating on/off cycle isn&rsquo;t available yet — it
-          arrives with the cycle builder in a later milestone.
-        </p>
-      </div>
-    );
-  }
 
   const draft = draftFromRecord({
     name: treatment.name,

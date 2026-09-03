@@ -39,10 +39,13 @@ state machine · M4 treatment detail ✅ — `/treatments/[id]` (phase progress
 forward, leaves past + every `AdherenceEvent` intact · M5 calendar ✅ —
 `/calendar` day / week (treatment × weekday grid) / month (activity density +
 phase-break markers); `prisma/seed.ts` now loads the Section 30 domain onto the
-demo account (Mon 7 Sep 2026, incl. Ointment B's 20/7/20 cycle) · M6 the M1 engine's remaining UX (phase-cycle builder, times_per_week
-confirm flow, relative-dose settings, per-phase tapering override, "what's
-changing" feed) · M7 reminders/missed-sweep · M8 prescription upload +
-verification · M9 settings/a11y/conflicts.
+demo account (Mon 7 Sep 2026, incl. Ointment B's 20/7/20 cycle) · M6 phase-cycle
+builder + confirm flow ✅ — wizard "Repeating cycle" step (ACTIVE/BREAK segments +
+once/count/until/forever), editable cycles, `times_per_week` → "which days?"
+banner with even-spread suggestion, "What's changing" feed. **Deferred to M9:**
+default-times editor + relative-occurrence re-resolution, per-phase `ruleOverride`
+tapering (schema fields kept intact) · M7 reminders/missed-sweep · M8 prescription
+upload + verification · M9 settings/a11y/conflicts.
 
 ## Stack
 

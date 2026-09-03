@@ -11,6 +11,7 @@ import {
   describeWindow,
 } from "@/lib/schedule-summary";
 import { type PhaseProgress, phaseProgress } from "@/lib/phase-progress";
+import { type UpcomingChange, upcomingChanges } from "@/lib/phase-transitions";
 import { prisma } from "@/server/db/client";
 
 import {
@@ -24,6 +25,7 @@ export interface TreatmentListItem {
   name: string;
   category: string;
   status: string;
+  needsConfirmation: boolean;
   recurrenceSummary: string;
   windowSummary: string;
   doseSummary: string;
@@ -75,6 +77,7 @@ export async function listTreatmentsForUser(
       name: t.name,
       category: t.category,
       status: t.status,
+      needsConfirmation: t.recurrence?.needsConfirmation ?? false,
       recurrenceSummary: rule ? describeRecurrence(rule) : "—",
       windowSummary: cycle
         ? describeWindow(plainDate(t.anchorDate), cycle)
@@ -105,6 +108,8 @@ export interface TreatmentDetail {
   name: string;
   category: string;
   status: string;
+  needsConfirmation: boolean;
+  weeklyCount: number | null;
   instructionsText: string | null;
   doseText: string | null;
   startedOn: string;
@@ -113,6 +118,7 @@ export interface TreatmentDetail {
   windowSummary: string;
   doseSummary: string;
   progress: PhaseProgress;
+  nextChange: UpcomingChange | null;
   adherence: AdherenceSummary;
   upcoming: OccurrenceLine[];
   recent: OccurrenceLine[];
@@ -178,12 +184,19 @@ export async function getTreatmentDetail(
     ? phaseCycleFromRows(t.phaseCycle, t.phaseCycle.phases)
     : null;
   const specs = doseSpecsFromRows(t.doseTimes);
+  const config = (t.recurrence?.config ?? {}) as { count?: number };
 
   return {
     id: t.id,
     name: t.name,
     category: t.category,
     status: t.status,
+    needsConfirmation: t.recurrence?.needsConfirmation ?? false,
+    weeklyCount:
+      t.recurrence?.type === "times_per_week" &&
+      typeof config.count === "number"
+        ? config.count
+        : null,
     instructionsText: t.instructionsText,
     doseText: t.doseText,
     startedOn: t.anchorDate,
@@ -201,6 +214,16 @@ export async function getTreatmentDetail(
           dayOfPhase: null,
           phaseLength: null,
         },
+    nextChange:
+      cycle && !t.recurrence?.needsConfirmation
+        ? (upcomingChanges(
+            t.id,
+            t.name,
+            plainDate(t.anchorDate),
+            cycle,
+            plainDate(today),
+          )[0] ?? null)
+        : null,
     adherence: summariseCounts(counts),
     upcoming,
     recent,

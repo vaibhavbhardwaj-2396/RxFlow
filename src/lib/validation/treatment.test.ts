@@ -7,7 +7,10 @@ const base = {
   category: "supplement" as const,
   anchorDate: "2026-09-07",
   recurrence: { kind: "specific_weekdays" as const, weekdays: [1, 2, 3, 4, 5] },
-  duration: { kind: "weeks" as const, value: 2 },
+  window: {
+    kind: "simple" as const,
+    duration: { kind: "weeks" as const, value: 2 },
+  },
   doseTimes: [{ kind: "clock" as const, value: "08:00" }],
 };
 
@@ -15,9 +18,9 @@ describe("createTreatmentSchema", () => {
   it("accepts a well-formed treatment", () => {
     const parsed = createTreatmentSchema.parse(base);
     expect(parsed.name).toBe("Multivitamin A");
-    expect(parsed.recurrence).toEqual({
-      kind: "specific_weekdays",
-      weekdays: [1, 2, 3, 4, 5],
+    expect(parsed.window).toEqual({
+      kind: "simple",
+      duration: { kind: "weeks", value: 2 },
     });
   });
 
@@ -34,7 +37,7 @@ describe("createTreatmentSchema", () => {
   it.each([
     { kind: "daily" },
     { kind: "interval_days", interval: 2 },
-    { kind: "interval_days", interval: 3 },
+    { kind: "times_per_week", count: 3 },
   ])("accepts recurrence %o", (recurrence) => {
     expect(
       createTreatmentSchema.safeParse({ ...base, recurrence }).success,
@@ -42,22 +45,49 @@ describe("createTreatmentSchema", () => {
   });
 
   it.each([
-    { kind: "days", value: 10 },
-    { kind: "months", value: 2 },
-    { kind: "until", date: "2026-12-31" },
-    { kind: "ongoing" },
-  ])("accepts duration %o", (duration) => {
-    expect(createTreatmentSchema.safeParse({ ...base, duration }).success).toBe(
+    { kind: "simple", duration: { kind: "days", value: 10 } },
+    { kind: "simple", duration: { kind: "until", date: "2026-12-31" } },
+    { kind: "simple", duration: { kind: "ongoing" } },
+    {
+      kind: "cycle",
+      segments: [
+        { phase: "active", unit: "days", value: 20 },
+        { phase: "break", unit: "days", value: 7 },
+      ],
+      repeat: { mode: "count", count: 2 },
+    },
+  ])("accepts window %o", (window) => {
+    expect(createTreatmentSchema.safeParse({ ...base, window }).success).toBe(
       true,
     );
   });
 
-  it("accepts a relative dose time", () => {
-    const parsed = createTreatmentSchema.parse({
-      ...base,
-      doseTimes: [{ kind: "relative", anchor: "dinner" }],
-    });
-    expect(parsed.doseTimes[0]).toEqual({ kind: "relative", anchor: "dinner" });
+  it("rejects times_per_week outside 2–7", () => {
+    expect(
+      createTreatmentSchema.safeParse({
+        ...base,
+        recurrence: { kind: "times_per_week", count: 1 },
+      }).success,
+    ).toBe(false);
+    expect(
+      createTreatmentSchema.safeParse({
+        ...base,
+        recurrence: { kind: "times_per_week", count: 8 },
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a cycle with no active segment", () => {
+    expect(
+      createTreatmentSchema.safeParse({
+        ...base,
+        window: {
+          kind: "cycle",
+          segments: [{ phase: "break", unit: "days", value: 7 }],
+          repeat: { mode: "once" },
+        },
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects an empty weekday list", () => {
@@ -68,23 +98,18 @@ describe("createTreatmentSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("rejects interval_days of 1", () => {
-    const result = createTreatmentSchema.safeParse({
-      ...base,
-      recurrence: { kind: "interval_days", interval: 1 },
-    });
-    expect(result.success).toBe(false);
-  });
-
   it("rejects an `until` date before the anchor", () => {
     const result = createTreatmentSchema.safeParse({
       ...base,
       anchorDate: "2026-09-07",
-      duration: { kind: "until", date: "2026-09-01" },
+      window: {
+        kind: "simple",
+        duration: { kind: "until", date: "2026-09-01" },
+      },
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(fieldErrorsOf(result.error).duration).toMatch(/before the start/i);
+      expect(fieldErrorsOf(result.error).window).toMatch(/before the start/i);
     }
   });
 

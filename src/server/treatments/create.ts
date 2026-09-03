@@ -72,7 +72,7 @@ export async function createTreatmentAction(
   const occurrences = generateOccurrences({
     anchor,
     recurrenceRule: recurrenceRuleFromInput(data.recurrence, anchor),
-    phaseCycle: phaseCycleFromInput(data.duration),
+    phaseCycle: phaseCycleFromInput(data.window),
     doseTimes: doseSpecsFromInput(data.doseTimes),
     timezone: user.timezone,
     defaultTimes,
@@ -83,9 +83,12 @@ export async function createTreatmentAction(
   const nested = toCreateData({
     anchorDate: data.anchorDate,
     recurrence: data.recurrence,
-    duration: data.duration,
+    window: data.window,
     doseTimes: data.doseTimes,
   });
+
+  // A "3× a week" with no chosen days waits for the user to pick them (M6).
+  const unconfirmed = nested.recurrence.needsConfirmation;
 
   await prisma.$transaction(async (tx) => {
     const plan = await tx.treatmentPlan.create({
@@ -103,8 +106,8 @@ export async function createTreatmentAction(
         anchorDate: data.anchorDate,
         timezone: user.timezone,
         scheduleVersion: 1,
-        status: "active",
-        confirmedAt: clock.now().toJSDate(),
+        status: unconfirmed ? "draft" : "active",
+        confirmedAt: unconfirmed ? null : clock.now().toJSDate(),
         recurrence: {
           create: {
             type: nested.recurrence.type,

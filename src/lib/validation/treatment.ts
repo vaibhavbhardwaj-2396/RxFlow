@@ -59,6 +59,10 @@ export const recurrenceInputSchema = z.discriminatedUnion("kind", [
       .min(2, "Every day already has its own option — use 2 or more here.")
       .max(30),
   }),
+  z.object({
+    kind: z.literal("times_per_week"),
+    count: z.number().int().min(2, "Use 2–7.").max(7, "Use 2–7."),
+  }),
 ]);
 
 export const durationInputSchema = z.discriminatedUnion("kind", [
@@ -83,6 +87,38 @@ export const doseTimeInputSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("relative"), anchor: z.string().min(1).max(40) }),
 ]);
 
+const cycleSegmentSchema = z.object({
+  phase: z.enum(["active", "break"]),
+  unit: z.enum(["days", "weeks", "months"]),
+  value: z.number().int().min(1).max(365),
+});
+
+const cycleRepeatSchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("once") }),
+  z.object({
+    mode: z.literal("count"),
+    count: z.number().int().min(1).max(52),
+  }),
+  z.object({ mode: z.literal("until"), date: isoDate }),
+  z.object({ mode: z.literal("forever") }),
+]);
+
+export const windowInputSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("simple"), duration: durationInputSchema }),
+  z.object({
+    kind: z.literal("cycle"),
+    segments: z
+      .array(cycleSegmentSchema)
+      .min(1, "Add at least one segment.")
+      .max(8, "Eight segments is the maximum.")
+      .refine(
+        (segs) => segs.some((s) => s.phase === "active"),
+        "A cycle needs at least one active segment.",
+      ),
+    repeat: cycleRepeatSchema,
+  }),
+]);
+
 export const createTreatmentSchema = z
   .object({
     name: z.string().trim().min(1, "Give the treatment a name.").max(120),
@@ -91,23 +127,37 @@ export const createTreatmentSchema = z
     doseText: emptyToUndefined(200),
     anchorDate: isoDate,
     recurrence: recurrenceInputSchema,
-    duration: durationInputSchema,
+    window: windowInputSchema,
     doseTimes: z
       .array(doseTimeInputSchema)
       .min(1, "Add at least one dose time.")
       .max(6, "Six dose times is the maximum."),
   })
   .refine(
-    (v) => v.duration.kind !== "until" || v.duration.date >= v.anchorDate,
+    (v) =>
+      v.window.kind !== "simple" ||
+      v.window.duration.kind !== "until" ||
+      v.window.duration.date >= v.anchorDate,
     {
       message: "The end date can't be before the start date.",
-      path: ["duration", "date"],
+      path: ["window"],
+    },
+  )
+  .refine(
+    (v) =>
+      v.window.kind !== "cycle" ||
+      v.window.repeat.mode !== "until" ||
+      v.window.repeat.date >= v.anchorDate,
+    {
+      message: "The end date can't be before the start date.",
+      path: ["window"],
     },
   );
 
 export type CreateTreatmentInput = z.infer<typeof createTreatmentSchema>;
 export type RecurrenceInput = z.infer<typeof recurrenceInputSchema>;
 export type DurationInput = z.infer<typeof durationInputSchema>;
+export type WindowInput = z.infer<typeof windowInputSchema>;
 export type DoseTimeInput = z.infer<typeof doseTimeInputSchema>;
 
 /** Flatten Zod issues to a `{ topLevelField: firstMessage }` map for forms. */

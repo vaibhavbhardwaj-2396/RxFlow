@@ -88,7 +88,7 @@ export async function updateTreatmentAction(
   const occurrences = generateOccurrences({
     anchor,
     recurrenceRule: recurrenceRuleFromInput(data.recurrence, anchor),
-    phaseCycle: phaseCycleFromInput(data.duration),
+    phaseCycle: phaseCycleFromInput(data.window),
     doseTimes: doseSpecsFromInput(data.doseTimes),
     timezone: treatment.timezone,
     defaultTimes,
@@ -99,7 +99,7 @@ export async function updateTreatmentAction(
   const nested = toCreateData({
     anchorDate: treatment.anchorDate,
     recurrence: data.recurrence,
-    duration: data.duration,
+    window: data.window,
     doseTimes: data.doseTimes,
   });
   const cycleId = treatment.phaseCycle.id;
@@ -113,6 +113,7 @@ export async function updateTreatmentAction(
         instructionsText: data.instructionsText ?? null,
         doseText: data.doseText ?? null,
         scheduleVersion: newVersion,
+        status: nested.recurrence.needsConfirmation ? "draft" : "active",
       },
     });
 

@@ -8,6 +8,7 @@ import type {
   TreatmentDetail as Detail,
 } from "@/server/treatments/queries";
 
+import { ConfirmScheduleForm } from "./confirm-schedule-form";
 import { PhaseProgressBar } from "./phase-progress-bar";
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -59,6 +60,13 @@ export function TreatmentDetail({ detail }: { detail: Detail }) {
         </Link>
       </div>
 
+      {detail.needsConfirmation && detail.weeklyCount !== null && (
+        <ConfirmScheduleForm
+          treatmentId={detail.id}
+          count={detail.weeklyCount}
+        />
+      )}
+
       {(detail.instructionsText || detail.doseText) && (
         <div className="rounded-2xl border border-line bg-surface-sunken p-4 text-sm">
           {detail.doseText && (
@@ -77,7 +85,9 @@ export function TreatmentDetail({ detail }: { detail: Detail }) {
       )}
 
       <section className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
-        <PhaseProgressBar progress={detail.progress} />
+        {!detail.needsConfirmation && (
+          <PhaseProgressBar progress={detail.progress} />
+        )}
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
           <dt className="text-ink-faint">Schedule</dt>
           <dd className="text-ink">{detail.recurrenceSummary}</dd>
@@ -86,6 +96,9 @@ export function TreatmentDetail({ detail }: { detail: Detail }) {
           <dt className="text-ink-faint">Times</dt>
           <dd className="text-ink">{detail.doseSummary}</dd>
         </dl>
+        {detail.nextChange && (
+          <p className="text-xs text-warn">Next: {detail.nextChange.label}</p>
+        )}
         <p className="text-xs text-ink-faint">
           Started{" "}
           {DateTime.fromISO(detail.startedOn, { zone: "utc" }).toFormat(

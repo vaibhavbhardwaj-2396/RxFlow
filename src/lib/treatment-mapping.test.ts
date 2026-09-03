@@ -12,7 +12,7 @@ import {
 const anchor = plainDate("2026-09-07");
 
 describe("recurrenceRuleFromInput", () => {
-  it("maps each kind and keeps weekdays sorted", () => {
+  it("maps every kind", () => {
     expect(recurrenceRuleFromInput({ kind: "daily" }, anchor)).toEqual({
       type: "daily",
       anchor,
@@ -26,27 +26,57 @@ describe("recurrenceRuleFromInput", () => {
     expect(
       recurrenceRuleFromInput({ kind: "interval_days", interval: 2 }, anchor),
     ).toEqual({ type: "interval_days", anchor, interval: 2 });
+    expect(
+      recurrenceRuleFromInput({ kind: "times_per_week", count: 3 }, anchor),
+    ).toEqual({ type: "times_per_week", anchor, count: 3 });
   });
 });
 
 describe("phaseCycleFromInput", () => {
-  it("wraps a bounded duration in one ACTIVE phase, repeat once", () => {
-    expect(phaseCycleFromInput({ kind: "weeks", value: 2 })).toEqual({
+  it("wraps a simple duration in one ACTIVE phase, repeat once", () => {
+    expect(
+      phaseCycleFromInput({
+        kind: "simple",
+        duration: { kind: "weeks", value: 2 },
+      }),
+    ).toEqual({
       phases: [{ kind: "active", duration: { kind: "weeks", value: 2 } }],
       repeat: { mode: "once" },
     });
   });
 
-  it("maps ongoing to forever and until to a dated phase", () => {
-    expect(phaseCycleFromInput({ kind: "ongoing" }).phases[0].duration).toEqual(
-      {
-        kind: "forever",
-      },
-    );
+  it("maps ongoing → forever and until → dated", () => {
     expect(
-      phaseCycleFromInput({ kind: "until", date: "2026-12-31" }).phases[0]
-        .duration,
+      phaseCycleFromInput({ kind: "simple", duration: { kind: "ongoing" } })
+        .phases[0].duration,
+    ).toEqual({ kind: "forever" });
+    expect(
+      phaseCycleFromInput({
+        kind: "simple",
+        duration: { kind: "until", date: "2026-12-31" },
+      }).phases[0].duration,
     ).toEqual({ kind: "until", date: "2026-12-31" });
+  });
+
+  it("builds a multi-phase cycle from segments + repeat", () => {
+    expect(
+      phaseCycleFromInput({
+        kind: "cycle",
+        segments: [
+          { phase: "active", unit: "days", value: 20 },
+          { phase: "break", unit: "days", value: 7 },
+          { phase: "active", unit: "days", value: 20 },
+        ],
+        repeat: { mode: "count", count: 2 },
+      }),
+    ).toEqual({
+      phases: [
+        { kind: "active", duration: { kind: "days", value: 20 } },
+        { kind: "break", duration: { kind: "days", value: 7 } },
+        { kind: "active", duration: { kind: "days", value: 20 } },
+      ],
+      repeat: { mode: "count", count: 2 },
+    });
   });
 });
 
@@ -69,7 +99,7 @@ describe("toCreateData", () => {
     const data = toCreateData({
       anchorDate: "2026-09-07",
       recurrence: { kind: "specific_weekdays", weekdays: [3, 1, 2, 5, 4] },
-      duration: { kind: "weeks", value: 2 },
+      window: { kind: "simple", duration: { kind: "weeks", value: 2 } },
       doseTimes: [{ kind: "clock", value: "08:00" }],
     });
 
@@ -103,41 +133,52 @@ describe("toCreateData", () => {
     ]);
   });
 
-  it("encodes daily as {} and ongoing as a forever phase", () => {
+  it("flags a bare times_per_week as needing confirmation and generates no phases oddities", () => {
     const data = toCreateData({
       anchorDate: "2026-09-07",
-      recurrence: { kind: "daily" },
-      duration: { kind: "ongoing" },
-      doseTimes: [{ kind: "relative", anchor: "dinner" }],
+      recurrence: { kind: "times_per_week", count: 3 },
+      window: { kind: "simple", duration: { kind: "ongoing" } },
+      doseTimes: [{ kind: "clock", value: "21:00" }],
     });
-    expect(data.recurrence.config).toEqual({});
-    expect(data.phaseCycle.phases[0]).toMatchObject({
-      durationKind: "forever",
-      durationValue: null,
-    });
-    expect(data.doseTimes[0]).toEqual({
-      orderIndex: 0,
-      kind: "relative",
-      clockValue: null,
-      relativeAnchor: "dinner",
+    expect(data.recurrence).toEqual({
+      type: "times_per_week",
+      config: { count: 3 },
+      recurrenceAnchor: "2026-09-07",
+      needsConfirmation: true,
     });
   });
 
-  it("encodes an `until` duration with its date", () => {
+  it("writes multi-phase cycle rows with the repeat mode", () => {
     const data = toCreateData({
       anchorDate: "2026-09-07",
-      recurrence: { kind: "interval_days", interval: 2 },
-      duration: { kind: "until", date: "2026-10-01" },
+      recurrence: { kind: "daily" },
+      window: {
+        kind: "cycle",
+        segments: [
+          { phase: "active", unit: "days", value: 10 },
+          { phase: "break", unit: "weeks", value: 1 },
+        ],
+        repeat: { mode: "until", date: "2026-12-01" },
+      },
       doseTimes: [{ kind: "clock", value: "22:00" }],
     });
-    expect(data.recurrence).toMatchObject({
-      type: "interval_days",
-      config: { interval: 2 },
-    });
-    expect(data.phaseCycle.phases[0]).toMatchObject({
-      durationKind: "until",
-      durationValue: null,
-      durationUntil: "2026-10-01",
-    });
+    expect(data.phaseCycle.repeatMode).toBe("until");
+    expect(data.phaseCycle.repeatUntil).toBe("2026-12-01");
+    expect(data.phaseCycle.phases).toEqual([
+      {
+        orderIndex: 0,
+        kind: "active",
+        durationKind: "days",
+        durationValue: 10,
+        durationUntil: null,
+      },
+      {
+        orderIndex: 1,
+        kind: "break",
+        durationKind: "weeks",
+        durationValue: 1,
+        durationUntil: null,
+      },
+    ]);
   });
 });

@@ -34,7 +34,10 @@ export function TreatmentList({
                   {CATEGORY_LABEL[t.category] ?? t.category}
                 </p>
               </div>
-              <StatusPill status={t.status} />
+              <StatusPill
+                status={t.status}
+                needsConfirmation={t.needsConfirmation}
+              />
             </div>
 
             <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
@@ -47,13 +50,17 @@ export function TreatmentList({
             </dl>
 
             <p className="mt-3 text-xs text-ink-muted">
-              {t.occurrenceCount} scheduled dose
-              {t.occurrenceCount === 1 ? "" : "s"}
-              {t.nextOccurrenceDate
-                ? ` · next ${DateTime.fromISO(t.nextOccurrenceDate, {
-                    zone: "utc",
-                  }).toFormat("ccc d LLL")}`
-                : ""}
+              {t.needsConfirmation
+                ? "Waiting for you to choose days"
+                : `${t.occurrenceCount} scheduled dose${
+                    t.occurrenceCount === 1 ? "" : "s"
+                  }${
+                    t.nextOccurrenceDate
+                      ? ` · next ${DateTime.fromISO(t.nextOccurrenceDate, {
+                          zone: "utc",
+                        }).toFormat("ccc d LLL")}`
+                      : ""
+                  }`}
             </p>
           </Link>
         </li>
@@ -62,7 +69,20 @@ export function TreatmentList({
   );
 }
 
-function StatusPill({ status }: { status: string }) {
+function StatusPill({
+  status,
+  needsConfirmation,
+}: {
+  status: string;
+  needsConfirmation: boolean;
+}) {
+  if (needsConfirmation) {
+    return (
+      <span className="shrink-0 rounded-full bg-warn/15 px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-warn">
+        Needs days
+      </span>
+    );
+  }
   return (
     <span
       className={cn(

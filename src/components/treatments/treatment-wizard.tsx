@@ -175,13 +175,27 @@ function stepValid(step: number, d: WizardDraft): boolean {
         return d.recurrence.weekdays.length > 0;
       if (d.recurrence.kind === "interval_days")
         return d.recurrence.interval >= 2 && d.recurrence.interval <= 30;
+      if (d.recurrence.kind === "times_per_week")
+        return d.recurrence.count >= 2 && d.recurrence.count <= 7;
       return true;
-    case 2:
+    case 2: {
       if (!DATE_RE.test(d.anchorDate)) return false;
-      if (d.duration.kind === "until")
-        return DATE_RE.test(d.duration.date) && d.duration.date >= d.anchorDate;
-      if (d.duration.kind !== "ongoing") return d.duration.value >= 1;
+      const w = d.window;
+      if (w.kind === "simple") {
+        if (w.duration.kind === "until")
+          return (
+            DATE_RE.test(w.duration.date) && w.duration.date >= d.anchorDate
+          );
+        if (w.duration.kind !== "ongoing") return w.duration.value >= 1;
+        return true;
+      }
+      if (!w.segments.some((s) => s.phase === "active")) return false;
+      if (!w.segments.every((s) => s.value >= 1)) return false;
+      if (w.repeat.mode === "count") return w.repeat.count >= 1;
+      if (w.repeat.mode === "until")
+        return DATE_RE.test(w.repeat.date) && w.repeat.date >= d.anchorDate;
       return true;
+    }
     case 3:
       return (
         d.doseTimes.length >= 1 &&

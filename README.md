@@ -32,10 +32,12 @@ prescriber said, and asks the user to clarify anything ambiguous.
   editing the schedule regenerates only future doses and never touches history
 - **Calendar** — day / week (treatment × weekday grid) / month (activity density
   + phase-break markers)
+- **Phase-cycle builder** — define repeating on/off cycles in the wizard; "N times
+  a week" treatments prompt you to pick which days
 - **Seed** — `npm run seed` loads the Section 30 example domain onto the demo
   account (anchored Mon 7 Sep 2026), so every screen has real content
 
-Next: **M6 — phase-cycle builder & complex recurrence UX.** See
+Next: **M7 — reminders & missed-detection.** See
 [the architecture assessment](https://claude.ai/code/artifact/a1d81ed8-346f-41d6-bafd-afa42c3bd22b)
 and `~/.claude/plans/okay-before-we-start-greedy-pearl.md`.
 
