@@ -57,6 +57,7 @@ async function act(
   ]);
 
   revalidatePath("/dashboard");
+  revalidatePath("/calendar");
   return { ok: true };
 }
 

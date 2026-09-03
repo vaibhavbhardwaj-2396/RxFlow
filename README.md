@@ -30,8 +30,12 @@ prescriber said, and asks the user to clarify anything ambiguous.
   explicitly, backed by an append-only adherence log
 - **Treatment detail + editing** — phase progress, timeline, adherence history;
   editing the schedule regenerates only future doses and never touches history
+- **Calendar** — day / week (treatment × weekday grid) / month (activity density
+  + phase-break markers)
+- **Seed** — `npm run seed` loads the Section 30 example domain onto the demo
+  account (anchored Mon 7 Sep 2026), so every screen has real content
 
-Next: **M5 — the calendar.** See
+Next: **M6 — phase-cycle builder & complex recurrence UX.** See
 [the architecture assessment](https://claude.ai/code/artifact/a1d81ed8-346f-41d6-bafd-afa42c3bd22b)
 and `~/.claude/plans/okay-before-we-start-greedy-pearl.md`.
 

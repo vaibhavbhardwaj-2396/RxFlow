@@ -36,8 +36,10 @@ mark complete/skip/undo, append-only `AdherenceEvent` log, `src/domain/adherence
 state machine · M4 treatment detail ✅ — `/treatments/[id]` (phase progress
 "Day N of M", timeline, adherence history) + edit-schedule: bumps
 `scheduleVersion`, deletes only future un-actioned occurrences, regenerates
-forward, leaves past + every `AdherenceEvent` intact · M5
-calendar · M6 the M1 engine's remaining UX (phase-cycle builder, times_per_week
+forward, leaves past + every `AdherenceEvent` intact · M5 calendar ✅ —
+`/calendar` day / week (treatment × weekday grid) / month (activity density +
+phase-break markers); `prisma/seed.ts` now loads the Section 30 domain onto the
+demo account (Mon 7 Sep 2026, incl. Ointment B's 20/7/20 cycle) · M6 the M1 engine's remaining UX (phase-cycle builder, times_per_week
 confirm flow, relative-dose settings, per-phase tapering override, "what's
 changing" feed) · M7 reminders/missed-sweep · M8 prescription upload +
 verification · M9 settings/a11y/conflicts.
