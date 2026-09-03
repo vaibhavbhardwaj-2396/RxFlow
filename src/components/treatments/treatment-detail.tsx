@@ -10,6 +10,7 @@ import type {
 
 import { ConfirmScheduleForm } from "./confirm-schedule-form";
 import { PhaseProgressBar } from "./phase-progress-bar";
+import { TreatmentRemindersToggle } from "./treatment-reminders-toggle";
 
 const CATEGORY_LABEL: Record<string, string> = {
   medication: "Medication",
@@ -51,13 +52,19 @@ export function TreatmentDetail({ detail }: { detail: Detail }) {
             {detail.name}
           </h1>
         </div>
-        <Link
-          href={`/treatments/${detail.id}/edit`}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink-muted hover:bg-surface-sunken"
-        >
-          <Pencil className="size-4" aria-hidden />
-          Edit
-        </Link>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <Link
+            href={`/treatments/${detail.id}/edit`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink-muted hover:bg-surface-sunken"
+          >
+            <Pencil className="size-4" aria-hidden />
+            Edit
+          </Link>
+          <TreatmentRemindersToggle
+            treatmentId={detail.id}
+            enabled={detail.remindersEnabled}
+          />
+        </div>
       </div>
 
       {detail.needsConfirmation && detail.weeklyCount !== null && (

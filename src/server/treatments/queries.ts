@@ -110,6 +110,7 @@ export interface TreatmentDetail {
   status: string;
   needsConfirmation: boolean;
   weeklyCount: number | null;
+  remindersEnabled: boolean;
   instructionsText: string | null;
   doseText: string | null;
   startedOn: string;
@@ -197,6 +198,7 @@ export async function getTreatmentDetail(
       typeof config.count === "number"
         ? config.count
         : null,
+    remindersEnabled: t.remindersEnabled,
     instructionsText: t.instructionsText,
     doseText: t.doseText,
     startedOn: t.anchorDate,

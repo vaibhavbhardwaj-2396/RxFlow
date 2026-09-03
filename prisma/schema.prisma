@@ -25,11 +25,19 @@ model User {
   /// Marks the shared read-only portfolio demo account.
   isDemo        Boolean   @default(false)
 
-  settings        UserSettings?
-  plans           TreatmentPlan[]
-  treatments      Treatment[]
-  occurrences     ScheduledOccurrence[]
-  adherenceEvents AdherenceEvent[]
+  /// Telegram chat id once linked (via a /start deep-link). Null = not connected.
+  telegramChatId    String?
+  /// Short-lived token the user carries into the bot to prove the link.
+  telegramLinkToken String? @unique
+
+  settings          UserSettings?
+  plans             TreatmentPlan[]
+  treatments        Treatment[]
+  occurrences       ScheduledOccurrence[]
+  adherenceEvents   AdherenceEvent[]
+  reminders         Reminder[]
+  notifications     NotificationLog[]
+  pushSubscriptions PushSubscription[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -59,6 +67,9 @@ model UserSettings {
 
   /// Notification channels the user has enabled, e.g. ["in_app","web_push"].
   enabledChannels String[] @default(["in_app"])
+
+  /// Global reminders kill-switch. Per-treatment control lives on Treatment.
+  remindersEnabled Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -141,10 +152,11 @@ model Treatment {
 
   /// Bumped when the schedule is edited; only future, un-actioned occurrences
   /// are regenerated (M4).
-  scheduleVersion Int             @default(1)
-  status          TreatmentStatus @default(draft)
-  confirmedAt     DateTime?
-  deletedAt       DateTime?
+  scheduleVersion  Int             @default(1)
+  status           TreatmentStatus @default(draft)
+  confirmedAt      DateTime?
+  deletedAt        DateTime?
+  remindersEnabled Boolean         @default(true)
 
   recurrence  RecurrenceRule?
   phaseCycle  PhaseCycle?
@@ -253,6 +265,7 @@ model ScheduledOccurrence {
   status           OccurrenceStatus @default(scheduled)
 
   adherenceEvents AdherenceEvent[]
+  reminder        Reminder?
 
   createdAt DateTime @default(now())
 
@@ -284,4 +297,79 @@ model AdherenceEvent {
   @@index([occurrenceId])
   @@index([userId])
   @@map("adherence_events")
+}
+
+enum ReminderStatus {
+  pending
+  sent
+  failed
+  cancelled
+}
+
+/// One pending reminder per occurrence. `fireAt` is the occurrence's instant
+/// minus the lead time, clipped out of quiet hours. The tick job creates these
+/// ahead of time and dispatches them when due.
+model Reminder {
+  id           String              @id @default(cuid())
+  occurrenceId String              @unique
+  occurrence   ScheduledOccurrence @relation(fields: [occurrenceId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fireAt       DateTime
+  status       ReminderStatus @default(pending)
+  attemptCount Int            @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@index([status, fireAt])
+  @@map("reminders")
+}
+
+/// Every notification the app has produced, per channel. Backs the in-app centre
+/// and its unread count. Carries only a minimal title/body — never dose text or
+/// prescriber instructions.
+model NotificationLog {
+  id           String  @id @default(cuid())
+  userId       String
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  occurrenceId String?
+
+  /// "in_app" | "web_push" | "telegram"
+  channel     String
+  title       String
+  body        String
+  url         String?
+  deliveredAt DateTime?
+  readAt      DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("notification_logs")
+}
+
+/// A browser Web Push subscription (one per device/browser).
+model PushSubscription {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint String @unique
+  p256dh   String
+  authKey  String
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+/// Tiny key/value store for the tick job's cursors (e.g. the Telegram
+/// getUpdates offset).
+model SystemState {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("system_state")
 }

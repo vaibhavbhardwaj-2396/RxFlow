@@ -16,7 +16,7 @@ prescriber said, and asks the user to clarify anything ambiguous.
 
 ## Status
 
-**Milestones M0–M3 complete.**
+**Milestones M0–M7 complete.**
 
 - Next.js 16 (App Router, RSC, Turbopack) · React 19 · TypeScript strict · Tailwind v4
 - PostgreSQL (project-local cluster) · Prisma
@@ -36,8 +36,15 @@ prescriber said, and asks the user to clarify anything ambiguous.
   a week" treatments prompt you to pick which days
 - **Seed** — `npm run seed` loads the Section 30 example domain onto the demo
   account (anchored Mon 7 Sep 2026), so every screen has real content
+- **Reminders & missed-detection** — an idempotent `tick` job sweeps overdue
+  doses to `missed`, materialises reminders (lead time + quiet hours), dispatches
+  them through an abstracted channel port (in-app always on; Web Push and
+  Telegram behind env-var gates), and rolls the occurrence horizon forward.
+  Notifications carry only the treatment name, time, and a deep link — never
+  dose text or instructions. `/settings` tunes reminders; `/notifications` is the
+  in-app centre with an unread bell
 
-Next: **M7 — reminders & missed-detection.** See
+Next: **M8 — prescription upload & verification.** See
 [the architecture assessment](https://claude.ai/code/artifact/a1d81ed8-346f-41d6-bafd-afa42c3bd22b)
 and `~/.claude/plans/okay-before-we-start-greedy-pearl.md`.
 
@@ -82,6 +89,7 @@ same Wi-Fi. If you see a cross-origin dev warning, set `DEV_ALLOWED_ORIGINS` in
 | `npm run db:studio` | Prisma Studio |
 | `npm run seed` | Load dev seed data |
 | `npm run tick` | Run the background job once (missed-sweep + reminders — M7) |
+| `npm run tick:watch` | Same, looped every 60s (needs the dev server running) |
 
 ---
 
@@ -123,4 +131,7 @@ imports. Full rationale in the assessment linked above.
   its encrypted-storage and retention story is built and reviewed.
 - No secrets in the repo: `.env` is gitignored, a `secretlint` pre-commit hook
   runs on every commit, and `.env.example` carries placeholders only.
+- Notifications leave the app only as a treatment name, a time, and a deep link.
+  Dose text and verbatim prescription instructions are never sent over Web Push
+  or Telegram. Both channels are off unless their keys are configured.
 - Seed data is fictional.

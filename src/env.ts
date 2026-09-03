@@ -16,6 +16,17 @@ const schema = z.object({
     .default("false")
     .transform((v) => v === "true"),
   RESEND_API_KEY: z.string().optional(),
+
+  // Web Push — optional. Generate with `npx web-push generate-vapid-keys`.
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().optional(), // "mailto:you@example.com"
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
+
+  // Telegram bot — optional. Create one with @BotFather.
+  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  TELEGRAM_BOT_USERNAME: z.string().optional(),
+
   NODE_ENV: z
     .enum(["development", "test", "production"])
     .default("development"),
@@ -34,3 +45,16 @@ export const env = parsed.data;
 
 export const isDev = env.NODE_ENV === "development";
 export const isProd = env.NODE_ENV === "production";
+
+/** Web Push is available only when all its VAPID keys are configured. */
+export const webPushEnabled = Boolean(
+  env.VAPID_PUBLIC_KEY &&
+  env.VAPID_PRIVATE_KEY &&
+  env.VAPID_SUBJECT &&
+  env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
+);
+
+/** The Telegram channel is available only when a bot token is configured. */
+export const telegramEnabled = Boolean(
+  env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_BOT_USERNAME,
+);

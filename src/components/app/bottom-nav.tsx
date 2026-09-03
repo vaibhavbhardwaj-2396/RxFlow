@@ -10,7 +10,7 @@ const ITEMS = [
   { href: "/dashboard", label: "Today", icon: House, ready: true },
   { href: "/treatments", label: "Treatments", icon: Pill, ready: true },
   { href: "/calendar", label: "Calendar", icon: CalendarDays, ready: true },
-  { href: "/settings", label: "Settings", icon: Settings, ready: false },
+  { href: "/settings", label: "Settings", icon: Settings, ready: true },
 ] as const;
 
 export function BottomNav() {

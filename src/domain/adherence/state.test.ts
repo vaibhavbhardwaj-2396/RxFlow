@@ -22,6 +22,8 @@ describe("applyAdherenceAction", () => {
     ["completed", "skip", "skipped", "skipped"],
     ["missed", "complete", "completed", "completed"],
     ["missed", "skip", "skipped", "skipped"],
+    ["scheduled", "miss", "missed", "missed"],
+    ["reminder_sent", "miss", "missed", "missed"],
   ])("%s + %s -> %s (event %s)", (from, action, status, event) => {
     expect(applyAdherenceAction(from, action)).toEqual({ status, event });
   });
@@ -31,6 +33,8 @@ describe("applyAdherenceAction", () => {
     ["skipped", "skip"],
     ["scheduled", "reopen"],
     ["reminder_sent", "reopen"],
+    ["completed", "miss"],
+    ["missed", "miss"],
   ])("rejects %s + %s", (from, action) => {
     expect(() => applyAdherenceAction(from, action)).toThrow(
       InvalidAdherenceActionError,

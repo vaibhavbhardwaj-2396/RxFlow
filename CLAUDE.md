@@ -44,8 +44,16 @@ builder + confirm flow ✅ — wizard "Repeating cycle" step (ACTIVE/BREAK segme
 once/count/until/forever), editable cycles, `times_per_week` → "which days?"
 banner with even-spread suggestion, "What's changing" feed. **Deferred to M9:**
 default-times editor + relative-occurrence re-resolution, per-phase `ruleOverride`
-tapering (schema fields kept intact) · M7 reminders/missed-sweep · M8 prescription
-upload + verification · M9 settings/a11y/conflicts.
+tapering (schema fields kept intact) · M7 reminders/missed-sweep ✅ — idempotent
+`tick` job (`npm run tick` → secret-guarded `POST /api/internal/tick`): sweep
+overdue → `missed` (+ `missed` `AdherenceEvent`, `source: tick`), materialise
+`Reminder` rows at `reminderFireAt` (lead time, quiet-hours push-out), dispatch
+due ones, roll the 90-day horizon forward. Abstract `NotificationChannel` port:
+in-app (always on, `NotificationLog` + `/notifications` centre + unread bell),
+Web Push (VAPID + `public/sw.js`, env-gated), Telegram (`/start` deep-link poll,
+env-gated). Notifications carry name + time + deep link only — never dose or
+instructions. `/settings` reminders section; per-treatment reminders toggle ·
+M8 prescription upload + verification · M9 settings/a11y/conflicts.
 
 ## Stack
 

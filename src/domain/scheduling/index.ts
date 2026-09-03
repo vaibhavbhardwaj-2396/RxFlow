@@ -28,6 +28,7 @@ export {
   type TimeSpecSnapshot,
   resolveDoseTime,
 } from "./dose-time";
+export { type QuietHours, inQuietHours, reminderFireAt } from "./reminders";
 export {
   type GeneratedOccurrence,
   type GenerateInput,

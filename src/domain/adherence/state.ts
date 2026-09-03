@@ -5,8 +5,8 @@
 export type OccurrenceStatus =
   "scheduled" | "reminder_sent" | "completed" | "skipped" | "missed";
 
-/** What the user did. */
-export type AdherenceAction = "complete" | "skip" | "reopen";
+/** What happened to an occurrence. `miss` is applied by the tick job, not a user. */
+export type AdherenceAction = "complete" | "skip" | "reopen" | "miss";
 
 /** What gets written to the log. Mirrors Prisma `AdherenceEventType`. */
 export type AdherenceEventType =
@@ -40,6 +40,11 @@ const TRANSITIONS: Record<AdherenceAction, Transition> = {
     from: ["completed", "skipped", "missed"],
     to: "scheduled",
     event: "reopened",
+  },
+  miss: {
+    from: ["scheduled", "reminder_sent"],
+    to: "missed",
+    event: "missed",
   },
 };
 
