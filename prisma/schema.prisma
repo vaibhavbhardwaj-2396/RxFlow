@@ -1,6 +1,7 @@
 // Regimen — Prisma schema
-// Milestone M0: identity + preferences only. Treatment-plan, occurrence,
-// adherence and reminder models arrive in M2+.
+// M0: identity + preferences. M2: the treatment plan — treatments, their
+// recurrence rule and phase cycle, dose times, and generated occurrences.
+// Adherence events (M3), reminders (M7) and prescriptions (M8) arrive later.
 
 generator client {
   provider = "prisma-client-js"
@@ -24,9 +25,13 @@ model User {
   /// Marks the shared read-only portfolio demo account.
   isDemo        Boolean   @default(false)
 
-  settings  UserSettings?
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  settings    UserSettings?
+  plans       TreatmentPlan[]
+  treatments  Treatment[]
+  occurrences ScheduledOccurrence[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("users")
 }
@@ -58,4 +63,190 @@ model UserSettings {
   updatedAt DateTime @updatedAt
 
   @@map("user_settings")
+}
+
+enum TreatmentCategory {
+  medication
+  supplement
+  topical
+  therapy
+  other
+}
+
+enum TreatmentStatus {
+  draft
+  active
+  paused
+  completed
+  archived
+}
+
+enum PhaseKind {
+  active
+  break
+}
+
+enum OccurrenceStatus {
+  scheduled
+  reminder_sent
+  completed
+  skipped
+  missed
+}
+
+/// Groups one or more treatments. Manual creation makes a one-treatment plan;
+/// a prescription upload (M8) makes a multi-treatment plan.
+model TreatmentPlan {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title String
+
+  treatments Treatment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("treatment_plans")
+}
+
+/// A single thing to do on a schedule — a medicine, supplement, ointment,
+/// physio routine. `instructionsText` and `doseText` are shown back verbatim and
+/// never parsed: that is a safety boundary.
+model Treatment {
+  id     String        @id @default(cuid())
+  userId String
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId String
+  plan   TreatmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  name             String
+  category         TreatmentCategory
+  instructionsText String?
+  doseText         String?
+
+  /// The day the plan starts, as "YYYY-MM-DD" in `timezone`.
+  anchorDate String
+  timezone   String
+
+  /// Bumped when the schedule is edited; only future, un-actioned occurrences
+  /// are regenerated (M4).
+  scheduleVersion Int             @default(1)
+  status          TreatmentStatus @default(draft)
+  confirmedAt     DateTime?
+  deletedAt       DateTime?
+
+  recurrence  RecurrenceRule?
+  phaseCycle  PhaseCycle?
+  doseTimes   DoseTime[]
+  occurrences ScheduledOccurrence[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@map("treatments")
+}
+
+/// 1:1 with a treatment. `type` + `config` mirror the domain `RecurrenceRule`
+/// union; `recurrenceAnchor` is "YYYY-MM-DD".
+model RecurrenceRule {
+  id          String    @id @default(cuid())
+  treatmentId String    @unique
+  treatment   Treatment @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+
+  /// "daily" | "specific_weekdays" | "interval_days" | "times_per_week"
+  type   String
+  /// Shape depends on `type`: {} | {weekdays:[…]} | {interval:n} | {count:n,weekdays?:[…]}
+  config Json
+
+  recurrenceAnchor  String
+  needsConfirmation Boolean @default(false)
+
+  @@map("recurrence_rules")
+}
+
+/// 1:1 with a treatment. The ordered `phases` plus a repeat mode. M2 writes one
+/// ACTIVE phase with `repeatMode = "once"`; M6 writes richer cycles.
+model PhaseCycle {
+  id          String    @id @default(cuid())
+  treatmentId String    @unique
+  treatment   Treatment @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+
+  /// "once" | "count" | "until" | "forever"
+  repeatMode  String
+  repeatCount Int?
+  repeatUntil String?
+
+  phases TreatmentPhase[]
+
+  @@map("phase_cycles")
+}
+
+/// One template step in a phase cycle.
+model TreatmentPhase {
+  id           String     @id @default(cuid())
+  phaseCycleId String
+  phaseCycle   PhaseCycle @relation(fields: [phaseCycleId], references: [id], onDelete: Cascade)
+
+  orderIndex Int
+  kind       PhaseKind
+
+  /// "days" | "weeks" | "months" | "until" | "forever"
+  durationKind  String
+  durationValue Int?
+  durationUntil String?
+
+  /// Optional per-phase recurrence override for tapering regimens (M6).
+  ruleOverride Json?
+  label        String?
+
+  @@index([phaseCycleId, orderIndex])
+  @@map("treatment_phases")
+}
+
+/// A time of day a dose is taken. `clock` carries `clockValue` ("HH:mm");
+/// `relative` carries `relativeAnchor` (a key of the user's defaultTimes).
+model DoseTime {
+  id          String    @id @default(cuid())
+  treatmentId String
+  treatment   Treatment @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+
+  orderIndex     Int
+  /// "clock" | "relative"
+  kind           String
+  clockValue     String?
+  relativeAnchor String?
+  label          String?
+
+  @@index([treatmentId, orderIndex])
+  @@map("dose_times")
+}
+
+/// One expected action: the intersection of the recurrence rule and an ACTIVE
+/// phase window, resolved to an instant. Immutable once generated; a schedule
+/// edit supersedes future rows with a higher `scheduleVersion`.
+model ScheduledOccurrence {
+  id          String    @id @default(cuid())
+  treatmentId String
+  treatment   Treatment @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  scheduledAt      DateTime
+  localDate        String
+  localTime        String
+  timezone         String
+  timeSpecSnapshot Json
+  phaseIndex       Int
+  scheduleVersion  Int
+  status           OccurrenceStatus @default(scheduled)
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, localDate])
+  @@index([treatmentId, scheduleVersion, status])
+  @@map("scheduled_occurrences")
 }

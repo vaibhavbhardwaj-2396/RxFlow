@@ -1,6 +1,7 @@
 import { DateTime } from "luxon";
 import type { Metadata } from "next";
 import { CalendarPlus, Sparkles } from "lucide-react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { buttonClass } from "@/components/ui/button";
@@ -51,18 +52,10 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
             schedule, timeline and reminders around it.
           </p>
         </div>
-        <button
-          type="button"
-          disabled
-          className={buttonClass("primary", "md")}
-          title="Manual treatment creation arrives in the next milestone"
-        >
+        <Link href="/treatments/new" className={buttonClass("primary", "md")}>
           <CalendarPlus className="size-4" aria-hidden />
           Add treatment
-        </button>
-        <p className="text-xs text-ink-faint">
-          Creating treatments unlocks in milestone M2.
-        </p>
+        </Link>
       </section>
 
       <p className="text-center text-xs text-ink-faint">

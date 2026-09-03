@@ -16,15 +16,18 @@ prescriber said, and asks the user to clarify anything ambiguous.
 
 ## Status
 
-**Milestone M0 — scaffold & auth — complete.**
+**Milestones M0–M2 complete.**
 
 - Next.js 16 (App Router, RSC, Turbopack) · React 19 · TypeScript strict · Tailwind v4
 - PostgreSQL (project-local cluster) · Prisma
 - Auth.js v5 — email + password (Argon2id), JWT sessions, multi-user
 - `Clock` abstraction + dev time-travel (toolbar + `?now=` param)
-- Vitest domain test suite (the correctness bar for the scheduling engine)
+- **Scheduling engine** (`src/domain/`) — recurrence rules × phase-cycle
+  intersection, timezone-resolved occurrence generation, exhaustively unit-tested
+- **Manual treatment creation** — a wizard that generates every dose on confirm,
+  persists the plan, and lists it
 
-Next: **M1 — the recurrence engine and its full test suite.** See
+Next: **M3 — the Today dashboard.** See
 [the architecture assessment](https://claude.ai/code/artifact/a1d81ed8-346f-41d6-bafd-afa42c3bd22b)
 and `~/.claude/plans/okay-before-we-start-greedy-pearl.md`.
 
