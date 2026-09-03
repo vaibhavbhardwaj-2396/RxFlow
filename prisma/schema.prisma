@@ -6,11 +6,18 @@
 
 generator client {
   provider = "prisma-client-js"
+  // "native" for local dev; "rhel-openssl-3.0.x" for Netlify Functions
+  // (Amazon Linux 2, Node 22). Both engines are emitted by `prisma generate`.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "postgresql"
+  // Runtime queries: Neon's pooled ("-pooler") URL in production.
   url      = env("DATABASE_URL")
+  // Migrations / introspection need a direct (unpooled) connection. Locally
+  // there is no pooler, so set DIRECT_URL to the same value as DATABASE_URL.
+  directUrl = env("DIRECT_URL")
 }
 
 /// A person using RxFlow. Auth is email + password (Argon2id), JWT sessions.

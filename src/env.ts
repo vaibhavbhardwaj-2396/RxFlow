@@ -7,11 +7,19 @@ import { z } from "zod";
  */
 const schema = z.object({
   DATABASE_URL: z.string().url(),
+  // Direct (unpooled) connection for Prisma Migrate. Referenced by
+  // schema.prisma; optional here because it is only needed by the CLI.
+  DIRECT_URL: z.string().url().optional(),
   AUTH_SECRET: z.string().min(16),
   PRESCRIPTION_ENCRYPTION_KEY: z.string().min(16),
   TICK_SECRET: z.string().min(8),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
   FEATURE_PRESCRIPTION_UPLOAD: z
+    .enum(["true", "false"])
+    .default("false")
+    .transform((v) => v === "true"),
+  // Shows the "Try the demo" button and enables the demo-login action.
+  NEXT_PUBLIC_DEMO_ENABLED: z
     .enum(["true", "false"])
     .default("false")
     .transform((v) => v === "true"),
@@ -58,3 +66,6 @@ export const webPushEnabled = Boolean(
 export const telegramEnabled = Boolean(
   env.TELEGRAM_BOT_TOKEN && env.TELEGRAM_BOT_USERNAME,
 );
+
+/** The one-click demo account is offered (public showcase deploys). */
+export const demoEnabled = env.NEXT_PUBLIC_DEMO_ENABLED;

@@ -1,0 +1,22 @@
+# Netlify auto-detects Next.js and injects its runtime (@netlify/plugin-nextjs) —
+# it is intentionally NOT pinned here. This file only overrides the build command
+# so migrations run, pins Node, and helps bundle Prisma's native engine.
+
+[build]
+  command = "npx prisma migrate deploy && npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  # Make sure the Prisma query engine and the argon2 native addon end up inside
+  # the serverless function bundles.
+  included_files = [
+    "node_modules/.prisma/client/**",
+    "node_modules/@node-rs/argon2-linux-*/**",
+  ]
+
+# The tick job (missed-sweep + reminders) and the nightly demo reset are plain
+# Netlify scheduled functions in netlify/functions/ — schedules are declared in
+# those files via `export const config`.

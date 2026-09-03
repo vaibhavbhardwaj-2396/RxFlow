@@ -108,6 +108,7 @@ same Wi-Fi. If you see a cross-origin dev warning, set `DEV_ALLOWED_ORIGINS` in
 | `npm run seed` | Load dev seed data |
 | `npm run tick` | Run the background job once (missed-sweep + reminders — M7) |
 | `npm run tick:watch` | Same, looped every 60s (needs the dev server running) |
+| `npm run seed:remote` | Seed a remote DB (no local Postgres) — used once against Neon |
 
 ---
 
@@ -139,6 +140,16 @@ scripts/db.sh   project-local Postgres cluster
 
 An ESLint boundary rule keeps `src/domain/` free of framework and persistence
 imports. Full rationale in the assessment linked above.
+
+---
+
+## Deploy
+
+Netlify (Next.js runtime) + Neon Postgres, connected to GitHub so every push to
+`main` deploys. `netlify.toml` runs `prisma migrate deploy` before the build;
+two scheduled functions (`netlify/functions/`) run the `tick` job every 15
+minutes and re-seed the demo account nightly. Prescription upload stays off on
+the deploy. **Full walkthrough: [DEPLOY.md](DEPLOY.md).**
 
 ---
 
