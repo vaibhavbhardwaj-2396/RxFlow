@@ -1,15 +1,15 @@
 "use client";
 
 import { Clock3, FastForward, Rewind } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 
 import { setSimNow } from "@/server/time/actions";
 
 interface DevToolbarProps {
-  /** The raw simulated value, or null when running on real time. */
+  /** The raw cookie value, or null when running on real time. */
   simNow: string | null;
-  /** The effective local date ("YYYY-MM-DD") currently being rendered. */
+  /** The effective local date ("YYYY-MM-DD") the layout resolved. */
   effectiveDate: string;
 }
 
@@ -23,16 +23,24 @@ function shiftDate(iso: string, days: number): string {
 
 export function DevToolbar({ simNow, effectiveDate }: DevToolbarProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
+
+  // A `?now=` param overrides the cookie for the page but not the layout, so
+  // prefer it here to keep the toolbar in step with what's on screen.
+  const paramNow = searchParams.get("now");
+  const shownDate = (paramNow ?? effectiveDate).slice(0, 10);
+  const simulating = simNow !== null || paramNow !== null;
 
   const apply = (value: string | null) => {
     startTransition(async () => {
       await setSimNow(value);
-      router.refresh();
+      // Drop any one-off `?now=` so the cookie is the single source of truth.
+      if (paramNow !== null) router.replace(pathname);
+      else router.refresh();
     });
   };
-
-  const simulating = simNow !== null;
 
   return (
     <div
@@ -45,7 +53,7 @@ export function DevToolbar({ simNow, effectiveDate }: DevToolbarProps) {
 
       <button
         type="button"
-        onClick={() => apply(shiftDate(effectiveDate, -1))}
+        onClick={() => apply(shiftDate(shownDate, -1))}
         disabled={pending}
         className="rounded-md p-1 hover:bg-surface-sunken"
         aria-label="Previous day"
@@ -55,7 +63,7 @@ export function DevToolbar({ simNow, effectiveDate }: DevToolbarProps) {
 
       <input
         type="date"
-        value={effectiveDate}
+        value={shownDate}
         disabled={pending}
         onChange={(e) => apply(e.target.value || null)}
         className="rounded-md border border-line bg-canvas px-2 py-1 text-ink"
@@ -64,7 +72,7 @@ export function DevToolbar({ simNow, effectiveDate }: DevToolbarProps) {
 
       <button
         type="button"
-        onClick={() => apply(shiftDate(effectiveDate, 1))}
+        onClick={() => apply(shiftDate(shownDate, 1))}
         disabled={pending}
         className="rounded-md p-1 hover:bg-surface-sunken"
         aria-label="Next day"
@@ -74,7 +82,7 @@ export function DevToolbar({ simNow, effectiveDate }: DevToolbarProps) {
 
       <button
         type="button"
-        onClick={() => apply(shiftDate(effectiveDate, 7))}
+        onClick={() => apply(shiftDate(shownDate, 7))}
         disabled={pending}
         className="rounded-md px-2 py-1 hover:bg-surface-sunken"
       >

@@ -50,6 +50,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
     "lefthook": "^2.1.12",
+    "playwright-core": "^1.62.1",
     "prettier": "^3.9.6",
     "prisma": "^6.19.3",
     "secretlint": "^13.0.5",

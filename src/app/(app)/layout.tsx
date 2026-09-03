@@ -1,5 +1,6 @@
 import dynamic from "next/dynamic";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
 import { BottomNav } from "@/components/app/bottom-nav";
 import { SignOutButton } from "@/components/app/sign-out-button";
@@ -54,7 +55,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
       {DevToolbar && (
         <div className="pointer-events-none sticky bottom-16 z-30 flex justify-center px-4">
-          <DevToolbar simNow={simNow} effectiveDate={effectiveDate} />
+          <Suspense fallback={null}>
+            <DevToolbar simNow={simNow} effectiveDate={effectiveDate} />
+          </Suspense>
         </div>
       )}
 
