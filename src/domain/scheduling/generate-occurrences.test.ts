@@ -285,6 +285,23 @@ describe("generateOccurrences — repeat modes", () => {
       "2026-09-16",
     ]);
   });
+
+  it("an ongoing plan (single forever ACTIVE phase, daily) is horizon-bounded and returns promptly", () => {
+    // The wizard's "Ongoing — no end date yet" maps to this shape. Regression
+    // guard: `expandPhaseCycle` must stop at the range horizon, not loop.
+    const start = Date.now();
+    const result = run({
+      phaseCycle: {
+        phases: [{ kind: "active", duration: { kind: "forever" } }],
+        repeat: { mode: "once" },
+      },
+      range: { from: ANCHOR, to: plainDate("2026-12-06") }, // 90 days
+    });
+    expect(Date.now() - start).toBeLessThan(1000);
+    expect(result).toHaveLength(91); // inclusive of both ends
+    expect(result[0].localDate).toBe("2026-09-07");
+    expect(result.at(-1)?.localDate).toBe("2026-12-06");
+  });
 });
 
 describe("generateOccurrences — calendar edges", () => {

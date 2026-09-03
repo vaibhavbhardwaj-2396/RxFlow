@@ -59,6 +59,9 @@ export function TreatmentDetail({
           <h1 className="font-display text-2xl font-semibold text-ink">
             {detail.name}
           </h1>
+          {detail.medicineName && (
+            <p className="text-sm text-ink-muted">{detail.medicineName}</p>
+          )}
           <TreatmentGroupPicker
             treatmentId={detail.id}
             current={detail.group}

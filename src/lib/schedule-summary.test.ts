@@ -15,13 +15,16 @@ const DEFAULT_TIMES = { dinner: "20:00", beforeSleep: "22:30" };
 describe("describeRecurrence", () => {
   it.each<[RecurrenceRule, string]>([
     [{ type: "daily", anchor }, "Every day"],
-    [{ type: "interval_days", anchor, interval: 2 }, "Every other day"],
+    [{ type: "interval_days", anchor, interval: 2 }, "Alternate day"],
     [{ type: "interval_days", anchor, interval: 3 }, "Every 3 days"],
     [
       { type: "specific_weekdays", anchor, weekdays: [1, 2, 3, 4, 5] },
-      "Weekdays",
+      "Weekdays (Mon–Fri)",
     ],
-    [{ type: "specific_weekdays", anchor, weekdays: [6, 7] }, "Weekends"],
+    [
+      { type: "specific_weekdays", anchor, weekdays: [6, 7] },
+      "Weekends (Sat–Sun)",
+    ],
     [
       { type: "specific_weekdays", anchor, weekdays: [1, 3, 5] },
       "Mondays, Wednesdays & Fridays",
@@ -29,6 +32,11 @@ describe("describeRecurrence", () => {
     [
       { type: "specific_weekdays", anchor, weekdays: [2, 6] },
       "Tuesdays & Saturdays",
+    ],
+    [{ type: "times_per_week", anchor, count: 3 }, "3× a week"],
+    [
+      { type: "times_per_week", anchor, count: 3, weekdays: [1, 3, 5] },
+      "3× a week (Mon, Wed & Fri)",
     ],
   ])("%o -> %s", (r, expected) => {
     expect(describeRecurrence(r)).toBe(expected);

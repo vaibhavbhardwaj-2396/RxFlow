@@ -1,6 +1,4 @@
-import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { TreatmentWizard } from "@/components/treatments/treatment-wizard";
@@ -42,13 +40,6 @@ export default async function NewTreatmentPage({
 
   return (
     <div className="flex flex-col gap-5">
-      <Link
-        href="/treatments"
-        className="inline-flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink"
-      >
-        <ArrowLeft className="size-4" aria-hidden />
-        Treatments
-      </Link>
       <h1 className="sr-only">Add a treatment</h1>
       <TreatmentWizard
         today={today}
@@ -56,6 +47,9 @@ export default async function NewTreatmentPage({
         defaultTimes={defaultTimes}
         submit={createTreatmentAction}
         groupOptions={groupOptions}
+        showGroupPicker
+        exitHref="/treatments"
+        exitLabel="Treatments"
       />
     </div>
   );

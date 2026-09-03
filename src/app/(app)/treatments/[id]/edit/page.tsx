@@ -1,6 +1,4 @@
-import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { TreatmentWizard } from "@/components/treatments/treatment-wizard";
@@ -66,18 +64,9 @@ export default async function EditTreatmentPage({
     treatment.phaseCycle.phases,
   );
 
-  const back = (
-    <Link
-      href={`/treatments/${id}`}
-      className="inline-flex items-center gap-1.5 text-sm text-ink-muted hover:text-ink"
-    >
-      <ArrowLeft className="size-4" aria-hidden />
-      {treatment.name}
-    </Link>
-  );
-
   const draft = draftFromRecord({
     name: treatment.name,
+    medicineName: treatment.medicineName,
     category: treatment.category as TreatmentCategoryValue,
     instructionsText: treatment.instructionsText,
     doseText: treatment.doseText,
@@ -89,7 +78,6 @@ export default async function EditTreatmentPage({
 
   return (
     <div className="flex flex-col gap-5">
-      {back}
       <h1 className="sr-only">Edit {treatment.name}</h1>
       <TreatmentWizard
         mode="edit"
@@ -98,6 +86,8 @@ export default async function EditTreatmentPage({
         defaultTimes={defaultTimes}
         draft={draft}
         submit={updateTreatmentAction.bind(null, id)}
+        exitHref={`/treatments/${id}`}
+        exitLabel={treatment.name}
       />
     </div>
   );

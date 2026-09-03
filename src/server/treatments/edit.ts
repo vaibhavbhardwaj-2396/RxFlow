@@ -109,6 +109,7 @@ export async function updateTreatmentAction(
       where: { id },
       data: {
         name: data.name,
+        medicineName: data.medicineName ?? null,
         category: data.category,
         instructionsText: data.instructionsText ?? null,
         doseText: data.doseText ?? null,

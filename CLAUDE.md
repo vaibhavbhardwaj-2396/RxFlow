@@ -112,6 +112,31 @@ telegram:setup` registers it. Web Push is config-only (4 `VAPID_*` env vars) —
 fixed a latent hydration bug in `browser-notifications-toggle.tsx` (client-only
 `Notification.permission` read → `useSyncExternalStore`). See `NOTIFICATIONS.md`.
 
+**Post-MVP · Wizard UX pass** — feedback from live use. `Treatment.medicineName`
+(optional brand/drug name, migration `20260904004650_treatment_medicine_name`,
+distinct from the free-text `name`; shows on detail + review + export). Basics
+step: medicine field, Group picker always shown in the standalone create flow
+(`showGroupPicker` prop) with an inline "＋ New group" (`create.ts` reads
+`newGroupTitle` from raw input, like `groupId`), the two "we never interpret
+this" hints removed. Schedule step: "Every other day" → **"Alternate day"**;
+`RadioGroup` descriptions disambiguate "Every few days" vs "A few times a week";
+**"A few times a week" resolves its days inline** — `DraftRecurrence`
+`times_per_week` gained `weekdays: number[]`, auto-filled from
+`suggestWeekdays(count)` on select / count-change, editable via a "Change days"
+disclosure (`recurrenceInputSchema` + `recurrenceRuleFromInput` pass `weekdays`
+through; `configFromRule` / `recurrenceRuleFromRow` already did) — so the manual
+wizard never emits a `needsConfirmation` treatment (`ConfirmScheduleForm` stays
+for seed/prescription drafts). `ToggleGroup` selected state is now solid;
+Weekdays/Weekends quick-picks show an active state. Duration: past-date hint;
+"Ongoing" verified loop-safe (`expandPhaseCycle` hard-stops at `horizonEnd`) +
+regression test. Dose-times step redesigned — one "when is it taken?" select
+(named routine times + "Specific time"); a routine shows `= 8:00 PM · from
+Settings` with no competing clock, "Use a different time" falls back to a clock.
+`describeWeekdays` → "Weekdays (Mon–Fri)" / "Weekends (Sat–Sun)";
+`describeRecurrence` times_per_week+weekdays → "3× a week (Mon, Wed & Fri)".
+Wizard nav: step-aware header back (`exitHref`/`exitLabel`), visible footer
+"Back". Settings default-times copy rewritten.
+
 **Deferred beyond MVP:** real AI/OCR extraction, per-phase `ruleOverride`
 tapering, link-upload-to-existing-plan, S3 driver, calendar-by-group,
 group-level adherence rollups — all interfaces kept extensible.

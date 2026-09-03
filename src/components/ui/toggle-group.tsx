@@ -46,7 +46,7 @@ export function ToggleGroup({
                 "min-w-11 rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]",
                 on
-                  ? "border-accent bg-accent-soft text-accent"
+                  ? "border-accent bg-accent text-accent-ink shadow-sm"
                   : "border-line bg-surface text-ink-muted hover:bg-surface-sunken",
               )}
             >

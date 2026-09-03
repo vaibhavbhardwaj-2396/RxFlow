@@ -30,6 +30,20 @@ describe("recurrenceRuleFromInput", () => {
       recurrenceRuleFromInput({ kind: "times_per_week", count: 3 }, anchor),
     ).toEqual({ type: "times_per_week", anchor, count: 3 });
   });
+
+  it("passes chosen weekdays through for times_per_week (sorted)", () => {
+    expect(
+      recurrenceRuleFromInput(
+        { kind: "times_per_week", count: 3, weekdays: [5, 1, 3] },
+        anchor,
+      ),
+    ).toEqual({
+      type: "times_per_week",
+      anchor,
+      count: 3,
+      weekdays: [1, 3, 5],
+    });
+  });
 });
 
 describe("phaseCycleFromInput", () => {
@@ -145,6 +159,21 @@ describe("toCreateData", () => {
       config: { count: 3 },
       recurrenceAnchor: "2026-09-07",
       needsConfirmation: true,
+    });
+  });
+
+  it("a times_per_week with chosen days carries weekdays and needs no confirmation", () => {
+    const data = toCreateData({
+      anchorDate: "2026-09-07",
+      recurrence: { kind: "times_per_week", count: 3, weekdays: [1, 3, 5] },
+      window: { kind: "simple", duration: { kind: "ongoing" } },
+      doseTimes: [{ kind: "clock", value: "21:00" }],
+    });
+    expect(data.recurrence).toEqual({
+      type: "times_per_week",
+      config: { count: 3, weekdays: [1, 3, 5] },
+      recurrenceAnchor: "2026-09-07",
+      needsConfirmation: false,
     });
   });
 

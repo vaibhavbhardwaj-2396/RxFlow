@@ -17,6 +17,22 @@ const WEEKDAY_NAMES = [
   "Sunday",
 ] as const;
 
+const SHORT_WEEKDAY_NAMES = [
+  "Mon",
+  "Tue",
+  "Wed",
+  "Thu",
+  "Fri",
+  "Sat",
+  "Sun",
+] as const;
+
+/** "Mon, Wed & Fri" from weekday numbers (1 = Mon … 7 = Sun). */
+function shortWeekdayList(weekdays: number[]): string {
+  const set = [...new Set(weekdays)].sort((a, b) => a - b);
+  return joinList(set.map((wd) => SHORT_WEEKDAY_NAMES[wd - 1] ?? String(wd)));
+}
+
 /** "a", "a & b", "a, b & c". */
 function joinList(parts: string[]): string {
   if (parts.length <= 1) return parts[0] ?? "";
@@ -46,13 +62,13 @@ export function describeRecurrence(rule: RecurrenceRule): string {
       return "Every day";
     case "interval_days":
       return rule.interval === 2
-        ? "Every other day"
+        ? "Alternate day"
         : `Every ${rule.interval} days`;
     case "specific_weekdays":
       return describeWeekdays(rule.weekdays);
     case "times_per_week":
       return rule.weekdays && rule.weekdays.length > 0
-        ? describeWeekdays(rule.weekdays)
+        ? `${rule.count}× a week (${shortWeekdayList(rule.weekdays)})`
         : `${rule.count}× a week`;
   }
 }
@@ -60,8 +76,8 @@ export function describeRecurrence(rule: RecurrenceRule): string {
 function describeWeekdays(weekdays: number[]): string {
   const set = [...new Set(weekdays)].sort((a, b) => a - b);
   const key = set.join(",");
-  if (key === "1,2,3,4,5") return "Weekdays";
-  if (key === "6,7") return "Weekends";
+  if (key === "1,2,3,4,5") return "Weekdays (Mon–Fri)";
+  if (key === "6,7") return "Weekends (Sat–Sun)";
   if (key === "1,2,3,4,5,6,7") return "Every day";
   return joinList(set.map((wd) => `${WEEKDAY_NAMES[wd - 1]}s`));
 }

@@ -47,6 +47,13 @@ export function ReviewStep({
     <div className="flex flex-col gap-5">
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
         <Row label="Name" value={draft.name || "—"} onEdit={() => onEdit(0)} />
+        {draft.medicineName.trim() && (
+          <Row
+            label="Medicine"
+            value={draft.medicineName.trim()}
+            onEdit={() => onEdit(0)}
+          />
+        )}
         <Row label="Category" value={draft.category} onEdit={() => onEdit(0)} />
         {preview.kind === "ok" && (
           <>

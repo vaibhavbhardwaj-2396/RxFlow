@@ -24,8 +24,12 @@ prescriber said, and asks the user to clarify anything ambiguous.
 - `Clock` abstraction + dev time-travel (toolbar + `?now=` param)
 - **Scheduling engine** (`src/domain/`) — recurrence rules × phase-cycle
   intersection, timezone-resolved occurrence generation, exhaustively unit-tested
-- **Manual treatment creation** — a wizard that generates every dose on confirm,
-  persists the plan, and lists it
+- **Manual treatment creation** — a five-step wizard (basics + optional medicine
+  name and group · how often · how long · dose times · review) that generates
+  every dose on confirm, persists the plan, and lists it. "A few times a week"
+  auto-suggests evenly-spaced days you can adjust; dose times let you pick the
+  instruction you were given ("after dinner") and resolve the clock time from
+  your settings
 - **Today dashboard** — doses grouped by time of day, marked complete / skipped
   explicitly, backed by an append-only adherence log
 - **Treatment detail + editing** — phase progress, timeline, adherence history;

@@ -40,6 +40,12 @@ export async function createTreatmentAction(
       ? (input as { groupId: string }).groupId
       : null;
 
+  const rawNewGroup = (input as { newGroupTitle?: unknown })?.newGroupTitle;
+  const newGroupTitle =
+    typeof rawNewGroup === "string" && rawNewGroup.trim().length > 0
+      ? rawNewGroup.trim().slice(0, 60)
+      : null;
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { timezone: true, settings: { select: { defaultTimes: true } } },
@@ -60,15 +66,16 @@ export async function createTreatmentAction(
     };
   }
 
-  // A chosen group must be the user's own.
-  const groupId = chosenGroupId
-    ? ((
-        await prisma.treatmentPlan.findFirst({
-          where: { id: chosenGroupId, userId },
-          select: { id: true },
-        })
-      )?.id ?? null)
-    : null;
+  // A chosen group must be the user's own. `newGroupTitle` wins over `groupId`.
+  const groupId =
+    !newGroupTitle && chosenGroupId
+      ? ((
+          await prisma.treatmentPlan.findFirst({
+            where: { id: chosenGroupId, userId },
+            select: { id: true },
+          })
+        )?.id ?? null)
+      : null;
 
   const clock = await getRequestClock();
   const now = clock.now().toJSDate();
@@ -78,7 +85,7 @@ export async function createTreatmentAction(
       groupId ??
       (
         await tx.treatmentPlan.create({
-          data: { userId, title: data.name },
+          data: { userId, title: newGroupTitle ?? data.name },
           select: { id: true },
         })
       ).id;

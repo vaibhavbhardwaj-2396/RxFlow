@@ -63,7 +63,7 @@ export function DefaultTimesForm({ settings }: { settings: AccountSettings }) {
   return (
     <SettingsSection
       title="Default times"
-      description="Named times that relative doses (“after dinner”) resolve to. Changing one shifts future, un-taken doses that use it."
+      description="Your routine times. When a dose is scheduled for “Dinner” instead of a fixed clock time, it uses the time you set here — change one and upcoming doses that use it move with it. Doses you’ve already taken, skipped or missed stay as they are."
     >
       <ul className="flex flex-col gap-2">
         {rows.map((row, i) => (

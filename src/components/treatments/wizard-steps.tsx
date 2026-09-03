@@ -2,6 +2,7 @@
 
 import { DateTime } from "luxon";
 import { Plus, X } from "lucide-react";
+import { useState } from "react";
 
 import { RadioGroup } from "@/components/ui/radio-group";
 import { TextField } from "@/components/ui/text-field";
@@ -9,9 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup } from "@/components/ui/toggle-group";
 import { humaniseAnchor } from "@/lib/schedule-summary";
 import { cn } from "@/lib/cn";
+import { suggestWeekdays } from "@/lib/suggest-weekdays";
 import { TREATMENT_CATEGORIES } from "@/lib/validation/treatment";
 
-import type { WizardDraft } from "./wizard-draft";
+import type { DraftRecurrence, WizardDraft } from "./wizard-draft";
 
 type Update = (patch: Partial<WizardDraft>) => void;
 type Errors = Record<string, string>;
@@ -44,12 +46,33 @@ const WEEKDAYS = [
   { value: 7, label: "Sun" },
 ] as const;
 
+/** "Mon, Wed & Fri" from weekday numbers. */
+function weekdayList(days: number[]): string {
+  const labels = [...days]
+    .sort((a, b) => a - b)
+    .map((d) => WEEKDAYS.find((w) => w.value === d)?.label ?? String(d));
+  if (labels.length <= 1) return labels[0] ?? "";
+  return `${labels.slice(0, -1).join(", ")} & ${labels.at(-1)}`;
+}
+
+/** "20:00" → "8:00 PM" for friendly secondary text. */
+function fmtClock(hhmm: string): string {
+  const dt = DateTime.fromFormat(hhmm, "HH:mm");
+  return dt.isValid ? dt.toFormat("h:mm a") : hhmm;
+}
+
 export function BasicsStep({
   draft,
   update,
   errors,
   groupOptions = [],
-}: StepProps & { groupOptions?: Array<{ id: string; title: string }> }) {
+  showGroupPicker = false,
+}: StepProps & {
+  groupOptions?: Array<{ id: string; title: string }>;
+  showGroupPicker?: boolean;
+}) {
+  const creatingGroup = draft.newGroupTitle !== undefined;
+
   return (
     <div className="flex flex-col gap-5">
       <TextField
@@ -57,27 +80,67 @@ export function BasicsStep({
         name="name"
         value={draft.name}
         onChange={(e) => update({ name: e.target.value })}
-        placeholder="e.g. Multivitamin A"
+        placeholder="e.g. Morning BP pill"
         autoFocus
         error={errors.name}
       />
-      {groupOptions.length > 0 && (
-        <label className="flex flex-col gap-1.5">
+      <TextField
+        label="Medicine / brand name (optional)"
+        name="medicineName"
+        value={draft.medicineName}
+        onChange={(e) => update({ medicineName: e.target.value })}
+        placeholder="e.g. Amlodipine 5 mg"
+        error={errors.medicineName}
+      />
+
+      {showGroupPicker && (
+        <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium text-ink">Group (optional)</span>
-          <select
-            value={draft.groupId ?? ""}
-            onChange={(e) => update({ groupId: e.target.value })}
-            className={selectClass}
-          >
-            <option value="">Its own group</option>
-            {groupOptions.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.title}
-              </option>
-            ))}
-          </select>
-        </label>
+          {creatingGroup ? (
+            <div className="flex items-center gap-2">
+              <input
+                autoFocus
+                aria-label="New group name"
+                value={draft.newGroupTitle ?? ""}
+                onChange={(e) => update({ newGroupTitle: e.target.value })}
+                placeholder="e.g. Dermatology"
+                maxLength={60}
+                className={cn(selectClass, "flex-1")}
+              />
+              <button
+                type="button"
+                aria-label="Cancel new group"
+                onClick={() => update({ newGroupTitle: undefined })}
+                className="rounded-md p-2 text-ink-faint hover:bg-surface-sunken hover:text-danger"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </div>
+          ) : (
+            <select
+              aria-label="Group"
+              value={draft.groupId ?? ""}
+              onChange={(e) => {
+                if (e.target.value === "__new") {
+                  update({ newGroupTitle: "", groupId: "" });
+                } else {
+                  update({ groupId: e.target.value });
+                }
+              }}
+              className={selectClass}
+            >
+              <option value="">Its own group</option>
+              {groupOptions.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.title}
+                </option>
+              ))}
+              <option value="__new">＋ New group…</option>
+            </select>
+          )}
+        </div>
       )}
+
       <RadioGroup
         legend="Category"
         name="category"
@@ -96,7 +159,6 @@ export function BasicsStep({
         value={draft.instructionsText}
         onChange={(e) => update({ instructionsText: e.target.value })}
         placeholder="The prescriber's wording, verbatim"
-        hint="Shown exactly as written — RxFlow never interprets it."
         error={errors.instructionsText}
       />
       <TextField
@@ -105,7 +167,6 @@ export function BasicsStep({
         value={draft.doseText}
         onChange={(e) => update({ doseText: e.target.value })}
         placeholder="e.g. 1 tablet"
-        hint="Free text, shown back as-is."
         error={errors.doseText}
       />
     </div>
@@ -153,16 +214,19 @@ export function ScheduleStep({ draft, update, errors }: StepProps) {
                 : 3,
           },
         });
-      case "weekly":
+      case "weekly": {
+        const count =
+          draft.recurrence.kind === "times_per_week"
+            ? draft.recurrence.count
+            : 3;
         return update({
           recurrence: {
             kind: "times_per_week",
-            count:
-              draft.recurrence.kind === "times_per_week"
-                ? draft.recurrence.count
-                : 3,
+            count,
+            weekdays: suggestWeekdays(count),
           },
         });
+      }
     }
   };
 
@@ -176,77 +240,36 @@ export function ScheduleStep({ draft, update, errors }: StepProps) {
         options={[
           { value: "daily", label: "Every day" },
           { value: "weekdays", label: "Specific days of the week" },
-          { value: "alternate", label: "Every other day" },
-          { value: "everyN", label: "Every few days" },
-          { value: "weekly", label: "A few times a week" },
+          {
+            value: "alternate",
+            label: "Alternate day",
+            description: "every second day",
+          },
+          {
+            value: "everyN",
+            label: "Every few days",
+            description: "a fixed gap — every 3rd day, every 5th…",
+          },
+          {
+            value: "weekly",
+            label: "A few times a week",
+            description: "e.g. 3 days a week, spaced out",
+          },
         ]}
         error={errors.recurrence}
       />
 
       {draft.recurrence.kind === "times_per_week" && (
-        <div className="flex flex-col gap-1.5">
-          <label className="flex items-center gap-3 text-sm text-ink">
-            <input
-              type="number"
-              min={2}
-              max={7}
-              value={draft.recurrence.count}
-              onChange={(e) =>
-                update({
-                  recurrence: {
-                    kind: "times_per_week",
-                    count: clampInt(e.target.value, 2, 7, 3),
-                  },
-                })
-              }
-              className={cn(selectClass, "w-20")}
-            />
-            times a week
-          </label>
-          <p className="text-xs text-ink-muted">
-            You&rsquo;ll pick which days right after creating it.
-          </p>
-        </div>
+        <TimesPerWeekPicker recurrence={draft.recurrence} update={update} />
       )}
 
       {draft.recurrence.kind === "specific_weekdays" && (
-        <div className="flex flex-col gap-2">
-          <ToggleGroup
-            legend="Which days?"
-            value={draft.recurrence.weekdays}
-            onChange={(weekdays) =>
-              update({ recurrence: { kind: "specific_weekdays", weekdays } })
-            }
-            options={WEEKDAYS}
-          />
-          <div className="flex gap-2 text-xs">
-            <button
-              type="button"
-              className="rounded-md border border-line px-2 py-1 text-ink-muted hover:bg-surface-sunken"
-              onClick={() =>
-                update({
-                  recurrence: {
-                    kind: "specific_weekdays",
-                    weekdays: [1, 2, 3, 4, 5],
-                  },
-                })
-              }
-            >
-              Weekdays
-            </button>
-            <button
-              type="button"
-              className="rounded-md border border-line px-2 py-1 text-ink-muted hover:bg-surface-sunken"
-              onClick={() =>
-                update({
-                  recurrence: { kind: "specific_weekdays", weekdays: [6, 7] },
-                })
-              }
-            >
-              Weekends
-            </button>
-          </div>
-        </div>
+        <WeekdayPicker
+          value={draft.recurrence.weekdays}
+          onChange={(weekdays) =>
+            update({ recurrence: { kind: "specific_weekdays", weekdays } })
+          }
+        />
       )}
 
       {draft.recurrence.kind === "interval_days" &&
@@ -272,6 +295,129 @@ export function ScheduleStep({ draft, update, errors }: StepProps) {
           </label>
         )}
     </div>
+  );
+}
+
+function TimesPerWeekPicker({
+  recurrence,
+  update,
+}: {
+  recurrence: Extract<DraftRecurrence, { kind: "times_per_week" }>;
+  update: Update;
+}) {
+  const [editing, setEditing] = useState(false);
+
+  const setCount = (count: number) =>
+    update({
+      recurrence: {
+        kind: "times_per_week",
+        count,
+        weekdays: suggestWeekdays(count),
+      },
+    });
+  const setDays = (weekdays: number[]) =>
+    update({
+      recurrence: {
+        kind: "times_per_week",
+        count: Math.max(1, weekdays.length),
+        weekdays,
+      },
+    });
+
+  return (
+    <div className="flex flex-col gap-3">
+      <label className="flex items-center gap-3 text-sm text-ink">
+        <input
+          type="number"
+          min={2}
+          max={7}
+          aria-label="Times per week"
+          value={recurrence.count}
+          onChange={(e) => setCount(clampInt(e.target.value, 2, 7, 3))}
+          className={cn(selectClass, "w-20")}
+        />
+        times a week
+      </label>
+
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-ink-muted">
+          {recurrence.weekdays.length > 0
+            ? `On ${weekdayList(recurrence.weekdays)}`
+            : "Pick which days"}
+        </span>
+        <button
+          type="button"
+          aria-expanded={editing}
+          onClick={() => setEditing((v) => !v)}
+          className="text-xs font-medium text-accent hover:underline"
+        >
+          {editing ? "Done" : "Change days"}
+        </button>
+      </div>
+
+      {editing && (
+        <WeekdayPicker value={recurrence.weekdays} onChange={setDays} />
+      )}
+    </div>
+  );
+}
+
+function WeekdayPicker({
+  value,
+  onChange,
+}: {
+  value: number[];
+  onChange: (weekdays: number[]) => void;
+}) {
+  const key = [...value].sort((a, b) => a - b).join(",");
+
+  return (
+    <div className="flex flex-col gap-2">
+      <ToggleGroup
+        legend="Which days?"
+        value={value}
+        onChange={onChange}
+        options={WEEKDAYS}
+      />
+      <div className="flex gap-2 text-xs">
+        <QuickPick
+          label="Weekdays"
+          active={key === "1,2,3,4,5"}
+          onClick={() => onChange([1, 2, 3, 4, 5])}
+        />
+        <QuickPick
+          label="Weekends"
+          active={key === "6,7"}
+          onClick={() => onChange([6, 7])}
+        />
+      </div>
+    </div>
+  );
+}
+
+function QuickPick({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={cn(
+        "rounded-md border px-2 py-1 font-medium transition-colors",
+        active
+          ? "border-accent bg-accent text-accent-ink"
+          : "border-line text-ink-muted hover:bg-surface-sunken",
+      )}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -357,6 +503,7 @@ export function DurationStep({
           type="date"
           value={draft.anchorDate}
           onChange={(e) => update({ anchorDate: e.target.value })}
+          hint="Can be in the past — set it to the day the treatment actually began."
           error={errors.anchorDate}
         />
       )}
@@ -651,60 +798,33 @@ export function DoseTimesStep({
   const removeRow = (i: number) =>
     update({ doseTimes: rows.filter((_, j) => j !== i) });
   const addRow = () =>
-    update({ doseTimes: [...rows, { kind: "clock", value: "09:00" }] });
+    update({
+      doseTimes: [
+        ...rows,
+        namedTimes[0]
+          ? { kind: "relative", anchor: namedTimes[0][0] }
+          : { kind: "clock", value: "09:00" },
+      ],
+    });
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="text-sm font-medium text-ink">
-        When is it taken on an active day?
+      <p className="text-sm text-ink-muted">
+        Pick the instruction you were given — &ldquo;after dinner&rdquo;,
+        &ldquo;before sleep&rdquo;. RxFlow fills in the clock time from your{" "}
+        <span className="text-ink">Settings</span>.
       </p>
 
       {rows.map((row, i) => (
-        <div key={i} className="flex items-center gap-2">
-          <select
-            aria-label={`Dose ${i + 1} timing`}
-            value={row.kind === "clock" ? "__clock" : row.anchor}
-            onChange={(e) =>
-              setRow(
-                i,
-                e.target.value === "__clock"
-                  ? { kind: "clock", value: "09:00" }
-                  : { kind: "relative", anchor: e.target.value },
-              )
-            }
-            className={cn(selectClass, "flex-1")}
-          >
-            <option value="__clock">At a specific time</option>
-            {namedTimes.map(([slug, time]) => (
-              <option key={slug} value={slug}>
-                {humaniseAnchor(slug)} ({time})
-              </option>
-            ))}
-          </select>
-
-          {row.kind === "clock" && (
-            <input
-              type="time"
-              aria-label={`Dose ${i + 1} time`}
-              value={row.value}
-              onChange={(e) =>
-                setRow(i, { kind: "clock", value: e.target.value })
-              }
-              className={selectClass}
-            />
-          )}
-
-          {rows.length > 1 && (
-            <button
-              type="button"
-              onClick={() => removeRow(i)}
-              aria-label={`Remove dose ${i + 1}`}
-              className="rounded-md p-2 text-ink-faint hover:bg-surface-sunken hover:text-danger"
-            >
-              <X className="size-4" aria-hidden />
-            </button>
-          )}
-        </div>
+        <DoseTimeRow
+          key={i}
+          row={row}
+          index={i}
+          namedTimes={namedTimes}
+          canRemove={rows.length > 1}
+          onChange={(r) => setRow(i, r)}
+          onRemove={() => removeRow(i)}
+        />
       ))}
 
       {errors.doseTimes && (
@@ -720,6 +840,102 @@ export function DoseTimesStep({
           <Plus className="size-4" aria-hidden />
           Add another time
         </button>
+      )}
+    </div>
+  );
+}
+
+function DoseTimeRow({
+  row,
+  index,
+  namedTimes,
+  canRemove,
+  onChange,
+  onRemove,
+}: {
+  row: WizardDraft["doseTimes"][number];
+  index: number;
+  namedTimes: Array<[string, string]>;
+  canRemove: boolean;
+  onChange: (row: WizardDraft["doseTimes"][number]) => void;
+  onRemove: () => void;
+}) {
+  const resolved =
+    row.kind === "relative"
+      ? namedTimes.find(([slug]) => slug === row.anchor)?.[1]
+      : undefined;
+  const anchorMissing = row.kind === "relative" && resolved === undefined;
+
+  return (
+    <div className="flex flex-col gap-1.5 rounded-lg border border-line bg-surface p-3">
+      <div className="flex items-center gap-2">
+        <select
+          aria-label={`Dose ${index + 1} — when is it taken?`}
+          value={row.kind === "clock" ? "__clock" : row.anchor}
+          onChange={(e) =>
+            onChange(
+              e.target.value === "__clock"
+                ? { kind: "clock", value: resolved ?? "09:00" }
+                : { kind: "relative", anchor: e.target.value },
+            )
+          }
+          className={cn(selectClass, "flex-1")}
+        >
+          {anchorMissing && row.kind === "relative" && (
+            <option value={row.anchor}>
+              {humaniseAnchor(row.anchor)} (not in Settings)
+            </option>
+          )}
+          {namedTimes.map(([slug]) => (
+            <option key={slug} value={slug}>
+              {humaniseAnchor(slug)}
+            </option>
+          ))}
+          <option value="__clock">Specific time</option>
+        </select>
+
+        {row.kind === "clock" && (
+          <input
+            type="time"
+            aria-label={`Dose ${index + 1} time`}
+            value={row.value}
+            onChange={(e) => onChange({ kind: "clock", value: e.target.value })}
+            className={selectClass}
+          />
+        )}
+
+        {canRemove && (
+          <button
+            type="button"
+            onClick={onRemove}
+            aria-label={`Remove dose ${index + 1}`}
+            className="rounded-md p-2 text-ink-faint hover:bg-surface-sunken hover:text-danger"
+          >
+            <X className="size-4" aria-hidden />
+          </button>
+        )}
+      </div>
+
+      {row.kind === "relative" && (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-ink-muted">
+          {resolved ? (
+            <>
+              <span>= {fmtClock(resolved)} · from Settings</span>
+              <button
+                type="button"
+                onClick={() => onChange({ kind: "clock", value: resolved })}
+                className="font-medium text-accent hover:underline"
+              >
+                Use a different time
+              </button>
+            </>
+          ) : (
+            <span className="text-danger">
+              No saved time for this — add it in Settings or pick a specific
+              time.
+            </span>
+          )}
+        </div>
       )}
     </div>
   );

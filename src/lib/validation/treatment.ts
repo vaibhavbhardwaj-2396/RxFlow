@@ -62,6 +62,12 @@ export const recurrenceInputSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("times_per_week"),
     count: z.number().int().min(2, "Use 2–7.").max(7, "Use 2–7."),
+    weekdays: z
+      .array(weekday)
+      .min(1, "Pick at least one day.")
+      .max(7)
+      .refine((ds) => new Set(ds).size === ds.length, "Days must be unique.")
+      .optional(),
   }),
 ]);
 
@@ -122,6 +128,7 @@ export const windowInputSchema = z.discriminatedUnion("kind", [
 export const createTreatmentSchema = z
   .object({
     name: z.string().trim().min(1, "Give the treatment a name.").max(120),
+    medicineName: emptyToUndefined(120),
     category: z.enum(TREATMENT_CATEGORIES),
     instructionsText: emptyToUndefined(2000),
     doseText: emptyToUndefined(200),

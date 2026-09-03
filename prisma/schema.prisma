@@ -167,6 +167,9 @@ model Treatment {
   plan   TreatmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   name             String
+  /// Optional actual drug / brand name, kept apart from the free-text `name`
+  /// label (e.g. name "Morning BP pill", medicineName "Amlodipine 5 mg").
+  medicineName     String?
   category         TreatmentCategory
   instructionsText String?
   doseText         String?

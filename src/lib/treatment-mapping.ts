@@ -43,7 +43,14 @@ export function recurrenceRuleFromInput(
     case "interval_days":
       return { type: "interval_days", anchor, interval: input.interval };
     case "times_per_week":
-      return { type: "times_per_week", anchor, count: input.count };
+      return {
+        type: "times_per_week",
+        anchor,
+        count: input.count,
+        ...(input.weekdays && input.weekdays.length > 0
+          ? { weekdays: sortWeekdays(input.weekdays) }
+          : {}),
+      };
   }
 }
 

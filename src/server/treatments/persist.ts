@@ -84,6 +84,7 @@ export async function persistTreatmentFromDraft(
       userId,
       planId,
       name: data.name,
+      medicineName: data.medicineName ?? null,
       category: data.category,
       instructionsText: data.instructionsText,
       doseText: data.doseText,

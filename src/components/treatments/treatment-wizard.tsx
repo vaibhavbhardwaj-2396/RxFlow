@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 import { buttonClass } from "@/components/ui/button";
@@ -34,6 +35,11 @@ interface TreatmentWizardProps {
   submit: (input: unknown) => Promise<WizardSubmitResult>;
   submitLabel?: string;
   groupOptions?: Array<{ id: string; title: string }>;
+  /** Show the "Group" picker on the Basics step (the standalone create flow only). */
+  showGroupPicker?: boolean;
+  /** Where the step-0 back link points, and its label. Omit inside embedded flows. */
+  exitHref?: string;
+  exitLabel?: string;
 }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -48,6 +54,9 @@ export function TreatmentWizard({
   submit,
   submitLabel,
   groupOptions = [],
+  showGroupPicker = false,
+  exitHref,
+  exitLabel = "Back",
 }: TreatmentWizardProps) {
   const [draft, setDraft] = useState<WizardDraft>(
     () => seed ?? initialDraft(today),
@@ -77,6 +86,7 @@ export function TreatmentWizard({
 
   const isLast = step === WIZARD_STEPS.length - 1;
   const canAdvance = stepValid(step, draft);
+  const back = () => setStep((s) => Math.max(0, s - 1));
 
   const confirm = () => {
     startTransition(async () => {
@@ -91,8 +101,25 @@ export function TreatmentWizard({
     });
   };
 
+  const backLinkClass =
+    "inline-flex items-center gap-1.5 self-start text-sm text-ink-muted hover:text-ink";
+
   return (
     <div className="flex flex-col gap-6">
+      {step === 0 ? (
+        exitHref && (
+          <Link href={exitHref} className={backLinkClass}>
+            <ArrowLeft className="size-4" aria-hidden />
+            {exitLabel}
+          </Link>
+        )
+      ) : (
+        <button type="button" onClick={back} className={backLinkClass}>
+          <ArrowLeft className="size-4" aria-hidden />
+          {WIZARD_STEPS[step - 1]}
+        </button>
+      )}
+
       <ol
         className="flex gap-1.5"
         aria-label={`Step ${step + 1} of ${WIZARD_STEPS.length}: ${WIZARD_STEPS[step]}`}
@@ -123,6 +150,7 @@ export function TreatmentWizard({
           update={update}
           errors={errors}
           groupOptions={mode === "create" ? groupOptions : []}
+          showGroupPicker={mode === "create" && showGroupPicker}
         />
       )}
       {step === 1 && (
@@ -162,14 +190,18 @@ export function TreatmentWizard({
       )}
 
       <div className="flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => setStep((s) => Math.max(0, s - 1))}
-          className={cn(buttonClass("ghost", "md"), step === 0 && "invisible")}
-        >
-          <ArrowLeft className="size-4" aria-hidden />
-          Back
-        </button>
+        {step > 0 ? (
+          <button
+            type="button"
+            onClick={back}
+            className={buttonClass("secondary", "md")}
+          >
+            <ArrowLeft className="size-4" aria-hidden />
+            Back
+          </button>
+        ) : (
+          <span />
+        )}
         {!isLast && (
           <button
             type="button"
@@ -196,7 +228,11 @@ function stepValid(step: number, d: WizardDraft): boolean {
       if (d.recurrence.kind === "interval_days")
         return d.recurrence.interval >= 2 && d.recurrence.interval <= 30;
       if (d.recurrence.kind === "times_per_week")
-        return d.recurrence.count >= 2 && d.recurrence.count <= 7;
+        return (
+          d.recurrence.count >= 2 &&
+          d.recurrence.count <= 7 &&
+          d.recurrence.weekdays.length > 0
+        );
       return true;
     case 2: {
       if (!DATE_RE.test(d.anchorDate)) return false;

@@ -129,6 +129,7 @@ export interface AdherenceHistoryLine {
 export interface TreatmentDetail {
   id: string;
   name: string;
+  medicineName: string | null;
   category: string;
   status: string;
   needsConfirmation: boolean;
@@ -223,6 +224,7 @@ export async function getTreatmentDetail(
   return {
     id: t.id,
     name: t.name,
+    medicineName: t.medicineName,
     category: t.category,
     status: t.status,
     needsConfirmation: t.recurrence?.needsConfirmation ?? false,

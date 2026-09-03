@@ -7,12 +7,13 @@ import type {
   DurationInput,
   TreatmentCategoryValue,
 } from "@/lib/validation/treatment";
+import { suggestWeekdays } from "@/lib/suggest-weekdays";
 
 export type DraftRecurrence =
   | { kind: "daily" }
   | { kind: "specific_weekdays"; weekdays: number[] }
   | { kind: "interval_days"; interval: number }
-  | { kind: "times_per_week"; count: number };
+  | { kind: "times_per_week"; count: number; weekdays: number[] };
 
 export type CycleSegment = {
   phase: "active" | "break";
@@ -36,6 +37,7 @@ export type DraftWindow =
  * (optional text fields are held as "" and coerced away by the schema). */
 export interface WizardDraft {
   name: string;
+  medicineName: string;
   category: TreatmentCategoryValue;
   instructionsText: string;
   doseText: string;
@@ -47,11 +49,14 @@ export interface WizardDraft {
   >;
   /** Chosen group for a new treatment; "" = its own solo plan. Create flow only. */
   groupId?: string;
+  /** A brand-new group to create and drop this treatment into. Create flow only. */
+  newGroupTitle?: string;
 }
 
 export function initialDraft(today: string): WizardDraft {
   return {
     name: "",
+    medicineName: "",
     category: "medication",
     instructionsText: "",
     doseText: "",
@@ -65,6 +70,7 @@ export function initialDraft(today: string): WizardDraft {
 /** A persisted treatment reduced to what the wizard needs, for the edit flow. */
 export interface TreatmentRecord {
   name: string;
+  medicineName: string | null;
   category: TreatmentCategoryValue;
   instructionsText: string | null;
   doseText: string | null;
@@ -78,6 +84,7 @@ export interface TreatmentRecord {
 export function draftFromRecord(record: TreatmentRecord): WizardDraft {
   return {
     name: record.name,
+    medicineName: record.medicineName ?? "",
     category: record.category,
     instructionsText: record.instructionsText ?? "",
     doseText: record.doseText ?? "",
@@ -101,9 +108,14 @@ function recurrenceToDraft(rule: RecurrenceRule): DraftRecurrence {
     case "interval_days":
       return { kind: "interval_days", interval: rule.interval };
     case "times_per_week":
-      return rule.weekdays && rule.weekdays.length > 0
-        ? { kind: "specific_weekdays", weekdays: [...rule.weekdays] }
-        : { kind: "times_per_week", count: rule.count };
+      return {
+        kind: "times_per_week",
+        count: rule.count,
+        weekdays:
+          rule.weekdays && rule.weekdays.length > 0
+            ? [...rule.weekdays]
+            : suggestWeekdays(rule.count),
+      };
   }
 }
 
@@ -162,6 +174,7 @@ export const WIZARD_STEPS = [
 /** Which step a server-side field error belongs to. */
 export const FIELD_STEP: Record<string, number> = {
   name: 0,
+  medicineName: 0,
   category: 0,
   instructionsText: 0,
   doseText: 0,

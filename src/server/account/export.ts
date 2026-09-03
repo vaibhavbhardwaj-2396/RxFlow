@@ -33,6 +33,7 @@ export async function buildAccountExport(userId: string) {
           id: true,
           planId: true,
           name: true,
+          medicineName: true,
           category: true,
           instructionsText: true,
           doseText: true,
