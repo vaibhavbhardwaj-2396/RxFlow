@@ -9,6 +9,7 @@ import type {
 } from "@/server/treatments/queries";
 
 import { ConfirmScheduleForm } from "./confirm-schedule-form";
+import { DeleteTreatmentButton } from "./delete-treatment-button";
 import { PhaseProgressBar } from "./phase-progress-bar";
 import { TreatmentRemindersToggle } from "./treatment-reminders-toggle";
 
@@ -156,6 +157,10 @@ export function TreatmentDetail({ detail }: { detail: Detail }) {
           </ul>
         </section>
       )}
+
+      <div className="border-t border-line pt-4">
+        <DeleteTreatmentButton treatmentId={detail.id} name={detail.name} />
+      </div>
     </div>
   );
 }

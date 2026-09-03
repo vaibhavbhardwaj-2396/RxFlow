@@ -18,9 +18,11 @@ export function OccurrenceRow({ item }: { item: OccurrenceCardVM }) {
   const [status, setOptimistic] = useOptimistic<OccurrenceStatus>(item.status);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [announce, setAnnounce] = useState<string | null>(null);
 
   const run = (
     optimistic: OccurrenceStatus,
+    label: string,
     action: () => Promise<OccurrenceActionResult>,
   ) => {
     setError(null);
@@ -28,6 +30,7 @@ export function OccurrenceRow({ item }: { item: OccurrenceCardVM }) {
       setOptimistic(optimistic);
       const result = await action();
       if ("error" in result) setError(result.error);
+      else setAnnounce(`${item.treatmentName} at ${item.localTime}: ${label}`);
     });
   };
 
@@ -41,6 +44,9 @@ export function OccurrenceRow({ item }: { item: OccurrenceCardVM }) {
         settled ? "bg-surface-sunken" : "bg-surface",
       )}
     >
+      <span className="sr-only" role="status" aria-live="polite">
+        {announce}
+      </span>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -71,7 +77,9 @@ export function OccurrenceRow({ item }: { item: OccurrenceCardVM }) {
             <>
               <ActionButton
                 label="Skip"
-                onClick={() => run("skipped", () => skipOccurrence(item.id))}
+                onClick={() =>
+                  run("skipped", "skipped", () => skipOccurrence(item.id))
+                }
                 disabled={pending}
               >
                 <X className="size-4" aria-hidden />
@@ -80,7 +88,9 @@ export function OccurrenceRow({ item }: { item: OccurrenceCardVM }) {
                 label="Mark done"
                 primary
                 onClick={() =>
-                  run("completed", () => completeOccurrence(item.id))
+                  run("completed", "marked done", () =>
+                    completeOccurrence(item.id),
+                  )
                 }
                 disabled={pending}
               >
@@ -97,7 +107,7 @@ export function OccurrenceRow({ item }: { item: OccurrenceCardVM }) {
               <ActionButton
                 label="Undo"
                 onClick={() =>
-                  run("scheduled", () => reopenOccurrence(item.id))
+                  run("scheduled", "reopened", () => reopenOccurrence(item.id))
                 }
                 disabled={pending}
               >
@@ -113,7 +123,9 @@ export function OccurrenceRow({ item }: { item: OccurrenceCardVM }) {
                 label="Mark done"
                 primary
                 onClick={() =>
-                  run("completed", () => completeOccurrence(item.id))
+                  run("completed", "marked done", () =>
+                    completeOccurrence(item.id),
+                  )
                 }
                 disabled={pending}
               >

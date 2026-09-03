@@ -46,7 +46,7 @@ export async function confirmScheduleAction(
   if (weekdays.length === 0) return { error: "Pick at least one day." };
 
   const treatment = await prisma.treatment.findFirst({
-    where: { id: treatmentId, userId, deletedAt: null },
+    where: { id: treatmentId, userId },
     include: {
       recurrence: true,
       phaseCycle: { include: { phases: { orderBy: { orderIndex: "asc" } } } },

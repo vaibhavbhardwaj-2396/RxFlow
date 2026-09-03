@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 
 import { buttonClass } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
@@ -54,6 +54,14 @@ export function TreatmentWizard({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>(undefined);
   const [pending, startTransition] = useTransition();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const mounted = useRef(false);
+
+  useEffect(() => {
+    // Move focus to the step heading on each step change (not the first render).
+    if (mounted.current) headingRef.current?.focus();
+    else mounted.current = true;
+  }, [step]);
 
   const update = (patch: Partial<WizardDraft>) => {
     setDraft((d) => ({ ...d, ...patch }));
@@ -90,6 +98,7 @@ export function TreatmentWizard({
         {WIZARD_STEPS.map((label, i) => (
           <li
             key={label}
+            aria-current={i === step ? "step" : undefined}
             className={cn(
               "h-1 flex-1 rounded-full",
               i <= step ? "bg-accent" : "bg-line",
@@ -98,9 +107,13 @@ export function TreatmentWizard({
         ))}
       </ol>
 
-      <h1 className="font-display text-2xl font-semibold text-ink">
+      <h2
+        ref={headingRef}
+        tabIndex={-1}
+        className="font-display text-2xl font-semibold text-ink focus:outline-none"
+      >
         {WIZARD_STEPS[step]}
-      </h1>
+      </h2>
 
       {step === 0 && (
         <BasicsStep draft={draft} update={update} errors={errors} />

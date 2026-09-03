@@ -1,8 +1,8 @@
-# Regimen
+# RxFlow
 
 **Your prescription, turned into a living treatment plan.**
 
-Regimen takes a medical prescription — with its multiple products, schedules,
+RxFlow takes a medical prescription — with its multiple products, schedules,
 durations, gaps, tapering patterns and follow-up phases — and turns it into a
 structured treatment plan with a calendar, a timeline, reminders and adherence
 tracking. It works for medicines, supplements, ointments, shampoos, skincare and
@@ -16,7 +16,7 @@ prescriber said, and asks the user to clarify anything ambiguous.
 
 ## Status
 
-**Milestones M0–M8 complete.**
+**The MVP is complete — milestones M0–M9.**
 
 - Next.js 16 (App Router, RSC, Turbopack) · React 19 · TypeScript strict · Tailwind v4
 - PostgreSQL (project-local cluster) · Prisma
@@ -50,10 +50,21 @@ prescriber said, and asks the user to clarify anything ambiguous.
   A `PrescriptionParser` port keeps a stub in place for an AI "help me fill this
   in" assistant later. Flag-gated by `FEATURE_PRESCRIPTION_UPLOAD` (off on the
   public demo)
+- **Settings & data lifecycle** — edit your profile and timezone; edit the named
+  "default times" that relative doses resolve to (changing one re-times future,
+  un-taken doses only). Download everything as JSON. Delete a treatment, delete
+  a prescription (the encrypted file is shredded), or delete your whole account
+  behind a typed confirmation — all cascading with no orphaned rows or files
+- **Schedule-overlap notice** — the dashboard flags when several doses fall on
+  the same minute. It only points out the overlap; it never judges whether
+  combining them is safe
+- **Accessibility** — skip link, live-announced dose actions, keyboard-first
+  wizard and a focus-trapped confirm dialog
 
-Next: **M9 — settings, accessibility & conflict detection.** See
-[the architecture assessment](https://claude.ai/code/artifact/a1d81ed8-346f-41d6-bafd-afa42c3bd22b)
-and `~/.claude/plans/okay-before-we-start-greedy-pearl.md`.
+Design source: [the architecture assessment](https://claude.ai/code/artifact/a1d81ed8-346f-41d6-bafd-afa42c3bd22b)
+and `~/.claude/plans/okay-before-we-start-greedy-pearl.md`. Kept extensible for
+later: per-phase tapering (`ruleOverride`) and an AI "help me fill this in"
+prescription parser.
 
 ---
 
@@ -102,7 +113,7 @@ same Wi-Fi. If you see a cross-origin dev warning, set `DEV_ALLOWED_ORIGINS` in
 
 ## Time travel
 
-Everything in Regimen is date-driven, so in development you can view any screen
+Everything in RxFlow is date-driven, so in development you can view any screen
 as if it were any date — no waiting, no editing seed dates.
 
 - **Dev toolbar** — the strip at the bottom of the app: date picker, ±1 day,
@@ -146,4 +157,10 @@ imports. Full rationale in the assessment linked above.
 - Notifications leave the app only as a treatment name, a time, and a deep link.
   Dose text and verbatim prescription instructions are never sent over Web Push
   or Telegram. Both channels are off unless their keys are configured.
+- Deletion is real: removing a treatment, a prescription or an account erases
+  the rows and any encrypted files with no soft-delete tombstone. Account
+  deletion requires retyping the email and cascades every user-owned record.
+  Finishing a treatment is a separate action that never deletes history.
+- `GET /api/account/export` returns a signed-in user's full data as JSON;
+  prescription files are referenced by their authenticated URL, not embedded.
 - Seed data is fictional.

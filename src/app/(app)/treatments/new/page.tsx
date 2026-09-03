@@ -47,6 +47,7 @@ export default async function NewTreatmentPage({
         <ArrowLeft className="size-4" aria-hidden />
         Treatments
       </Link>
+      <h1 className="sr-only">Add a treatment</h1>
       <TreatmentWizard
         today={today}
         timezone={user.timezone}

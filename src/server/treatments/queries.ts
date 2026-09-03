@@ -40,7 +40,7 @@ export async function listTreatmentsForUser(
 ): Promise<TreatmentListItem[]> {
   const [rows, upcoming, settings] = await Promise.all([
     prisma.treatment.findMany({
-      where: { userId, deletedAt: null },
+      where: { userId },
       orderBy: { createdAt: "desc" },
       include: {
         recurrence: true,
@@ -133,7 +133,7 @@ export async function getTreatmentDetail(
   today: string,
 ): Promise<TreatmentDetail | null> {
   const t = await prisma.treatment.findFirst({
-    where: { id, userId, deletedAt: null },
+    where: { id, userId },
     include: {
       recurrence: true,
       phaseCycle: { include: { phases: { orderBy: { orderIndex: "asc" } } } },

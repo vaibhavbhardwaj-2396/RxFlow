@@ -40,7 +40,7 @@ export function PrescriptionViewer({
         />
       )}
       <figcaption className="border-t border-line px-3 py-2 text-xs text-ink-faint">
-        {originalName ?? "Prescription"} · reference only — Regimen never reads
+        {originalName ?? "Prescription"} · reference only — RxFlow never reads
         this for you
       </figcaption>
     </figure>

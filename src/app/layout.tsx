@@ -19,11 +19,11 @@ const spectral = Spectral({
 
 export const metadata: Metadata = {
   title: {
-    default: "Regimen",
-    template: "%s · Regimen",
+    default: "RxFlow",
+    template: "%s · RxFlow",
   },
   description: "Your prescription, turned into a living treatment plan.",
-  applicationName: "Regimen",
+  applicationName: "RxFlow",
 };
 
 export const viewport: Viewport = {

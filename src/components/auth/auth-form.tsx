@@ -86,7 +86,7 @@ export function AuthForm({ mode, action }: AuthFormProps) {
           </>
         ) : (
           <>
-            New to Regimen?{" "}
+            New to RxFlow?{" "}
             <Link href="/sign-up" className="font-medium text-accent">
               Create an account
             </Link>

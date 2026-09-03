@@ -1,10 +1,13 @@
 @AGENTS.md
 
-# Regimen — project notes for Claude
+# RxFlow — project notes for Claude
 
-**What it is:** a prescription → treatment-plan scheduling and adherence app.
-It is NOT a medical adviser. It never diagnoses, recommends, alters or invents
-instructions. Ambiguity is surfaced to the user, never guessed.
+**What it is:** RxFlow, a prescription → treatment-plan scheduling and adherence
+app. It is NOT a medical adviser. It never diagnoses, recommends, alters or
+invents instructions. Ambiguity is surfaced to the user, never guessed.
+(Some internal identifiers — the `regimen_dev` DB, the `regimen_sim_now` cookie,
+`*@regimen.test` seed emails — keep the old name deliberately; the rename was
+user-facing only.)
 
 **Source of truth for design:** the architecture assessment
 (https://claude.ai/code/artifact/a1d81ed8-346f-41d6-bafd-afa42c3bd22b) and
@@ -65,9 +68,29 @@ plan builder: reuses `TreatmentWizard` per card, mandatory per-card "checked
 against my prescription" + blocking `needsDayChoice`, `confirmPrescriptionPlanAction`
 → one `TreatmentPlan` + `PrescriptionExtraction` (manual) + N `PrescriptionItem`
 + `persistTreatmentFromDraft` (shared with `create.ts`). Feature-gated by
-`FEATURE_PRESCRIPTION_UPLOAD` (nav "Rx" tab + routes + upload all check it).
-**Deferred to M9:** real AI/OCR extraction, link-to-existing-plan, hard delete
-+ file shred, JSON export, S3 driver · M9 settings/a11y/conflicts.
+`FEATURE_PRESCRIPTION_UPLOAD` (nav "Rx" tab + routes + upload all check it) ·
+M9 settings/lifecycle/a11y ✅ — `/settings` gains **Profile** (name + IANA
+timezone) and a **Default-times editor**; both call
+`reresolveFutureOccurrences` (`src/server/occurrences/reresolve.ts`) — future
+un-actioned occurrences whose `timeSpecSnapshot` resolves differently get their
+`localTime`/`scheduledAt`/snapshot rewritten and pending `Reminder`s dropped;
+completed/skipped/missed rows are untouched. Domain `wallTimeToInstant`
+extracted for reuse. **Hard delete + file shred**
+(`src/server/account/delete.ts`): `deleteTreatmentAction` (rows + occurrences +
+adherence + notification logs; empty non-prescription plan too),
+`deletePrescriptionAction` (`fileStore.delete` then row cascade),
+`deleteAccountAction` (typed-email confirm → shred every file → `user.delete`
+cascade → `signOut` → `/goodbye`). `GET /api/account/export` streams all
+user-owned data as JSON (files by URL, not bytes). **Schedule-overlap notice**:
+pure `findTimeConflicts` (`src/domain/scheduling/conflicts.ts`) → dashboard
+`ConflictNotice` — same-minute clusters of 2+ treatments, neutral wording,
+never a medical claim. **a11y**: skip link + `<main id>`, `aria-live` on dose
+actions, native-`<dialog>` `ConfirmDialog` (focus trap + return), wizard focus
+moves to the step heading. `Treatment.deletedAt` dropped (real delete
+replaces it). **Renamed Regimen → RxFlow** across the UI/metadata/comments.
+**Deferred beyond MVP:** real AI/OCR extraction, per-phase `ruleOverride`
+tapering, link-upload-to-existing-plan, S3 driver — all interfaces kept
+extensible.
 
 ## Stack
 

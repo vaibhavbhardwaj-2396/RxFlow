@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { ConflictNotice } from "@/components/dashboard/conflict-notice";
 import { TodayBoard } from "@/components/dashboard/today-board";
 import { WhatsChanging } from "@/components/dashboard/whats-changing";
 import { buttonClass } from "@/components/ui/button";
@@ -68,8 +69,8 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
               Your treatment plan is empty
             </h2>
             <p className="mx-auto mt-1 max-w-xs text-sm text-ink-muted">
-              Add a treatment or upload a prescription and Regimen will build
-              the schedule, timeline and reminders around it.
+              Add a treatment or upload a prescription and RxFlow will build the
+              schedule, timeline and reminders around it.
             </p>
           </div>
           <Link href="/treatments/new" className={buttonClass("primary", "md")}>
@@ -79,6 +80,7 @@ export default async function DashboardPage(props: PageProps<"/dashboard">) {
         </section>
       ) : (
         <>
+          <ConflictNotice overlaps={board.overlaps} />
           <TodayBoard board={board} />
           <WhatsChanging changes={changes} />
         </>

@@ -43,7 +43,7 @@ export async function updateTreatmentAction(
   const userId = session.user.id;
 
   const treatment = await prisma.treatment.findFirst({
-    where: { id, userId, deletedAt: null },
+    where: { id, userId },
     select: {
       scheduleVersion: true,
       anchorDate: true,

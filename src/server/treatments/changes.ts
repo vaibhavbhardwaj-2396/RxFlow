@@ -10,7 +10,7 @@ export async function getUpcomingChanges(
   today: string,
 ): Promise<UpcomingChange[]> {
   const treatments = await prisma.treatment.findMany({
-    where: { userId, deletedAt: null, status: "active" },
+    where: { userId, status: "active" },
     select: {
       id: true,
       name: true,

@@ -1,4 +1,4 @@
-// Regimen — Prisma schema
+// RxFlow — Prisma schema
 // M0: identity + preferences. M2: the treatment plan — treatments, their
 // recurrence rule and phase cycle, dose times, and generated occurrences.
 // M3: adherence events. M7: reminders + notification channels. M8: uploaded
@@ -13,7 +13,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// A person using Regimen. Auth is email + password (Argon2id), JWT sessions.
+/// A person using RxFlow. Auth is email + password (Argon2id), JWT sessions.
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -159,7 +159,6 @@ model Treatment {
   scheduleVersion  Int             @default(1)
   status           TreatmentStatus @default(draft)
   confirmedAt      DateTime?
-  deletedAt        DateTime?
   remindersEnabled Boolean         @default(true)
 
   recurrence       RecurrenceRule?

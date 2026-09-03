@@ -141,7 +141,7 @@ export function PlanBuilder({
         </h2>
         <p className="mt-1 text-sm text-ink-muted">
           Add each one your prescription lists. Check every card against the
-          document before you confirm — Regimen never fills these in for you.
+          document before you confirm — RxFlow never fills these in for you.
         </p>
       </div>
 

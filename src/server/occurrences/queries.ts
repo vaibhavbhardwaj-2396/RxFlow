@@ -4,6 +4,7 @@ import {
   isPending,
   summariseStatuses,
 } from "@/domain/adherence";
+import { findTimeConflicts } from "@/domain/scheduling";
 import { type PlainDate, addDays, plainDate } from "@/domain/time";
 import {
   type DayPart,
@@ -31,9 +32,17 @@ export interface DaySection {
   items: OccurrenceCardVM[];
 }
 
+/** Times where two or more different treatments land on the same minute. A
+ * neutral scheduling observation — never a claim about combining them. */
+export interface TimeOverlap {
+  localTime: string;
+  treatments: string[];
+}
+
 export interface DayBoard {
   sections: DaySection[];
   adherence: AdherenceSummary;
+  overlaps: TimeOverlap[];
 }
 
 /** One local date's doses, grouped by time of day. Shared by the dashboard and
@@ -48,12 +57,29 @@ export async function getDayBoard(
     orderBy: [{ localTime: "asc" }, { scheduledAt: "asc" }],
     select: {
       id: true,
+      treatmentId: true,
       localTime: true,
       status: true,
       scheduledAt: true,
       treatment: { select: { name: true, doseText: true, category: true } },
     },
   });
+
+  const nameById = new Map(
+    occurrences.map((o) => [o.treatmentId, o.treatment.name]),
+  );
+  const overlaps: TimeOverlap[] = (
+    findTimeConflicts(
+      occurrences.map((o) => ({
+        treatmentId: o.treatmentId,
+        localDate: date,
+        localTime: o.localTime,
+      })),
+    ).get(date) ?? []
+  ).map((cluster) => ({
+    localTime: cluster.localTime,
+    treatments: cluster.treatmentIds.map((id) => nameById.get(id) ?? "A dose"),
+  }));
 
   const items: OccurrenceCardVM[] = occurrences.map((o) => ({
     id: o.id,
@@ -74,6 +100,7 @@ export async function getDayBoard(
   return {
     sections,
     adherence: summariseStatuses(items.map((i) => i.status)),
+    overlaps,
   };
 }
 
@@ -94,7 +121,7 @@ export async function getTodayBoard(
 ): Promise<TodayBoard> {
   const [board, treatmentCount, comingUpRows] = await Promise.all([
     getDayBoard(userId, today, now),
-    prisma.treatment.count({ where: { userId, deletedAt: null } }),
+    prisma.treatment.count({ where: { userId } }),
     prisma.scheduledOccurrence.groupBy({
       by: ["localDate"],
       where: { userId, status: "scheduled", localDate: { gt: today } },
@@ -188,7 +215,7 @@ export async function getMonthGrid(
       _count: { _all: true },
     }),
     prisma.treatment.findMany({
-      where: { userId, deletedAt: null },
+      where: { userId },
       select: {
         name: true,
         anchorDate: true,

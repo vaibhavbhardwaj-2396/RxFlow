@@ -2,7 +2,7 @@ import type { OccurrenceStatus } from "./state";
 
 /**
  * Neutral counts for a set of occurrences (a day, a treatment, a week). Not a
- * score — the UI decides how to phrase it. Regimen never grades the user.
+ * score — the UI decides how to phrase it. RxFlow never grades the user.
  */
 export interface AdherenceSummary {
   total: number;

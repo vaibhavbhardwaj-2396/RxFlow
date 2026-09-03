@@ -1,4 +1,4 @@
-/* Regimen service worker — Web Push only. */
+/* RxFlow service worker — Web Push only. */
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) =>
@@ -7,7 +7,7 @@ self.addEventListener("activate", (event) =>
 
 self.addEventListener("push", (event) => {
   let data = {
-    title: "Regimen",
+    title: "RxFlow",
     body: "You have a reminder.",
     url: "/dashboard",
   };

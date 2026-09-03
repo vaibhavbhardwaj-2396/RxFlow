@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { DeletePrescriptionButton } from "@/components/prescriptions/delete-prescription-button";
 import { PlanBuilder } from "@/components/prescriptions/plan-builder";
 import { PrescriptionViewer } from "@/components/prescriptions/prescription-viewer";
 import { buttonClass } from "@/components/ui/button";
@@ -58,6 +59,10 @@ export default async function PrescriptionPage({
         Prescriptions
       </Link>
 
+      <h1 className="font-display text-2xl font-semibold text-ink">
+        {prescription.originalName ?? "Prescription"}
+      </h1>
+
       <PrescriptionViewer
         prescriptionId={prescription.id}
         sourceType={prescription.sourceType}
@@ -112,6 +117,13 @@ export default async function PrescriptionPage({
           initialNote={prescription.note}
         />
       )}
+
+      <div className="border-t border-line pt-4">
+        <DeletePrescriptionButton
+          prescriptionId={prescription.id}
+          hasPlan={prescription.treatments.length > 0}
+        />
+      </div>
     </div>
   );
 }

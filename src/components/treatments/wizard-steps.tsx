@@ -74,7 +74,7 @@ export function BasicsStep({ draft, update, errors }: StepProps) {
         value={draft.instructionsText}
         onChange={(e) => update({ instructionsText: e.target.value })}
         placeholder="The prescriber's wording, verbatim"
-        hint="Shown exactly as written — Regimen never interprets it."
+        hint="Shown exactly as written — RxFlow never interprets it."
         error={errors.instructionsText}
       />
       <TextField

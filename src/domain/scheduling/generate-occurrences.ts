@@ -1,5 +1,3 @@
-import { DateTime } from "luxon";
-
 import { type PlainDate, addDays, eachDate, maxDate, minDate } from "../time";
 
 import {
@@ -7,9 +5,9 @@ import {
   type TimeSpecSnapshot,
   resolveDoseTime,
 } from "./dose-time";
-import { InvalidWallTimeError } from "./errors";
 import { type PhaseCycle, expandPhaseCycle } from "./phase-cycle";
 import { type RecurrenceRule, isOn, needsConfirmation } from "./recurrence";
+import { wallTimeToInstant } from "./wall-time";
 
 export interface GenerateInput {
   /** The treatment's anchor date — where the phase cursor starts. */
@@ -85,7 +83,7 @@ export function generateOccurrences(
           localDate: date,
           localTime,
           timezone,
-          scheduledAt: toInstant(date, localTime, timezone),
+          scheduledAt: wallTimeToInstant(date, localTime, timezone),
           timeSpecSnapshot: snapshot,
           status: "scheduled",
         });
@@ -97,24 +95,4 @@ export function generateOccurrences(
     a.scheduledAt < b.scheduledAt ? -1 : a.scheduledAt > b.scheduledAt ? 1 : 0,
   );
   return occurrences;
-}
-
-/** Wall time on a local date, in `timezone`, as a UTC ISO instant — using that
- * zone's offset rules for that date, so DST elsewhere stays correct. */
-function toInstant(
-  date: PlainDate,
-  localTime: string,
-  timezone: string,
-): string {
-  const dt = DateTime.fromISO(`${date}T${localTime}`, { zone: timezone });
-  if (!dt.isValid) {
-    throw new InvalidWallTimeError(
-      `${date} ${localTime} ${timezone} — ${dt.invalidReason ?? "invalid"}`,
-    );
-  }
-  const instant = dt.toUTC().toISO();
-  if (instant === null) {
-    throw new InvalidWallTimeError(`${date} ${localTime} ${timezone}`);
-  }
-  return instant;
 }

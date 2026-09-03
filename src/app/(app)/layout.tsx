@@ -36,11 +36,17 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-2xl flex-col">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-3 focus:top-3 focus:z-50 focus:rounded-lg focus:bg-accent focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-accent-ink"
+      >
+        Skip to content
+      </a>
       <PushRegistrar />
       <header className="flex items-center justify-between border-b border-line px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="font-display text-lg font-semibold text-ink">
-            Regimen
+            RxFlow
           </span>
           {user.isDemo && (
             <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-accent">
@@ -57,7 +63,13 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         </div>
       </header>
 
-      <main className="flex-1 px-4 py-5">{children}</main>
+      <main
+        id="main"
+        tabIndex={-1}
+        className="flex-1 px-4 py-5 focus:outline-none"
+      >
+        {children}
+      </main>
 
       {DevToolbar && (
         <div className="pointer-events-none sticky bottom-16 z-30 flex justify-center px-4">

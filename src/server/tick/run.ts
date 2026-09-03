@@ -120,7 +120,6 @@ async function materialiseReminders(nowDt: DateTime): Promise<number> {
       reminder: { is: null },
       treatment: {
         remindersEnabled: true,
-        deletedAt: null,
         user: { settings: { remindersEnabled: true } },
       },
     },
@@ -245,7 +244,7 @@ async function extendHorizon(nowDt: DateTime): Promise<number> {
   const refillBy = addDays(today, HORIZON_REFILL_DAYS);
 
   const treatments = await prisma.treatment.findMany({
-    where: { deletedAt: null, status: "active" },
+    where: { status: "active" },
     select: {
       id: true,
       userId: true,

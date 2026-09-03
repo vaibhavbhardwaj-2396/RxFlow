@@ -3,12 +3,14 @@
 import { randomBytes } from "node:crypto";
 
 import { Prisma } from "@prisma/client";
+import { DateTime } from "luxon";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 import { env } from "@/env";
 import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/client";
+import { reresolveFutureOccurrences } from "@/server/occurrences/reresolve";
 
 const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -50,6 +52,98 @@ export async function updateReminderSettingsAction(
   });
 
   revalidatePath("/settings");
+  return {};
+}
+
+const profileSchema = z.object({
+  displayName: z.string().trim().max(80),
+  timezone: z
+    .string()
+    .min(1)
+    .refine(
+      (tz) => DateTime.local().setZone(tz).isValid,
+      "That isn't a recognised timezone.",
+    ),
+});
+
+export async function updateProfileAction(
+  input: unknown,
+): Promise<SettingsResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Please sign in again." };
+
+  const parsed = profileSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Check the form." };
+  }
+  const { displayName, timezone } = parsed.data;
+
+  const current = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { timezone: true },
+  });
+  const timezoneChanged = Boolean(current && current.timezone !== timezone);
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { displayName: displayName || null, timezone },
+  });
+
+  if (timezoneChanged) {
+    await reresolveFutureOccurrences(session.user.id, {
+      timezoneChanged: true,
+    });
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/dashboard");
+  revalidatePath("/calendar");
+  return {};
+}
+
+const defaultTimesSchema = z
+  .record(
+    z.string().regex(/^[a-zA-Z][a-zA-Z0-9_]{0,23}$/, "Use letters and digits."),
+    z.string().regex(HHMM, "Use a 24-hour time like 08:00."),
+  )
+  .refine((m) => Object.keys(m).length >= 1, "Keep at least one time.")
+  .refine((m) => Object.keys(m).length <= 12, "Twelve times is the maximum.");
+
+export async function updateDefaultTimesAction(
+  input: unknown,
+): Promise<SettingsResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Please sign in again." };
+
+  const parsed = defaultTimesSchema.safeParse(input);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? "Check the times." };
+  }
+  const next = parsed.data;
+
+  const settings = await prisma.userSettings.findUnique({
+    where: { userId: session.user.id },
+    select: { defaultTimes: true },
+  });
+  const prev = (settings?.defaultTimes ?? {}) as Record<string, string>;
+
+  const changedAnchors = new Set<string>();
+  for (const [slug, time] of Object.entries(next)) {
+    if (prev[slug] !== time) changedAnchors.add(slug);
+  }
+
+  await prisma.userSettings.update({
+    where: { userId: session.user.id },
+    data: { defaultTimes: next as Prisma.InputJsonValue },
+  });
+
+  if (changedAnchors.size > 0) {
+    await reresolveFutureOccurrences(session.user.id, { changedAnchors });
+  }
+
+  revalidatePath("/settings");
+  revalidatePath("/dashboard");
+  revalidatePath("/calendar");
   return {};
 }
 

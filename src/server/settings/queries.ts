@@ -2,6 +2,34 @@ import type { QuietHours } from "@/domain/scheduling";
 import { env, telegramEnabled, webPushEnabled } from "@/env";
 import { prisma } from "@/server/db/client";
 
+export interface AccountSettings {
+  displayName: string;
+  email: string;
+  timezone: string;
+  defaultTimes: Record<string, string>;
+}
+
+export async function getAccountSettings(
+  userId: string,
+): Promise<AccountSettings | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      displayName: true,
+      email: true,
+      timezone: true,
+      settings: { select: { defaultTimes: true } },
+    },
+  });
+  if (!user) return null;
+  return {
+    displayName: user.displayName ?? "",
+    email: user.email,
+    timezone: user.timezone,
+    defaultTimes: (user.settings?.defaultTimes ?? {}) as Record<string, string>,
+  };
+}
+
 export interface ReminderSettings {
   reminderLeadMinutes: number;
   quietHours: QuietHours | null;

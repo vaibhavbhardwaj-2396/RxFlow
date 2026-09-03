@@ -77,7 +77,7 @@ export default async function TreatmentsPage({
               No treatments yet
             </h2>
             <p className="mx-auto mt-1 max-w-xs text-sm text-ink-muted">
-              Add one and Regimen builds the schedule, generates every dose, and
+              Add one and RxFlow builds the schedule, generates every dose, and
               (soon) reminds you.
             </p>
           </div>

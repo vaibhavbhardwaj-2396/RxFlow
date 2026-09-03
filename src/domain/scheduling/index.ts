@@ -1,4 +1,4 @@
-// Scheduling engine — the heart of Regimen.
+// Scheduling engine — the heart of RxFlow.
 //
 // Recurrence and phase availability are modelled as independent concepts and
 // intersected to produce occurrences. Interval recurrence keeps a fixed anchor
@@ -29,6 +29,12 @@ export {
   resolveDoseTime,
 } from "./dose-time";
 export { type QuietHours, inQuietHours, reminderFireAt } from "./reminders";
+export { wallTimeToInstant } from "./wall-time";
+export {
+  type OccurrenceSlot,
+  type TimeCluster,
+  findTimeConflicts,
+} from "./conflicts";
 export {
   type GeneratedOccurrence,
   type GenerateInput,

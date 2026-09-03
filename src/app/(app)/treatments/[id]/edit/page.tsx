@@ -41,7 +41,7 @@ export default async function EditTreatmentPage({
       },
     }),
     prisma.treatment.findFirst({
-      where: { id, userId: session.user.id, deletedAt: null },
+      where: { id, userId: session.user.id },
       include: {
         recurrence: true,
         phaseCycle: {
@@ -90,6 +90,7 @@ export default async function EditTreatmentPage({
   return (
     <div className="flex flex-col gap-5">
       {back}
+      <h1 className="sr-only">Edit {treatment.name}</h1>
       <TreatmentWizard
         mode="edit"
         today={today}
