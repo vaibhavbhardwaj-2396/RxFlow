@@ -1,9 +1,10 @@
 import type { Config } from "@netlify/functions";
 
 /**
- * Runs the RxFlow background job every 15 minutes: sweep overdue doses to
- * `missed`, materialise + dispatch due reminders, roll the occurrence horizon
- * forward. Just calls the secret-guarded internal route.
+ * Runs the RxFlow background job every 5 minutes: sweep overdue doses to
+ * `missed`, materialise + dispatch due reminders (in-app / Web Push / Telegram),
+ * roll the occurrence horizon forward. Just calls the secret-guarded internal
+ * route.
  */
 export default async function tick(): Promise<Response> {
   const base = process.env.URL ?? process.env.NEXT_PUBLIC_APP_URL;
@@ -22,5 +23,5 @@ export default async function tick(): Promise<Response> {
 }
 
 export const config: Config = {
-  schedule: "*/15 * * * *",
+  schedule: "*/5 * * * *",
 };

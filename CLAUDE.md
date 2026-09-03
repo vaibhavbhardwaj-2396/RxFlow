@@ -103,7 +103,14 @@ grouped by group (header = colour dot + kind badge + inferred course-end),
 (create/update/archive/move), a "shadow" solo plan renders flat under "Ungrouped"
 (`src/lib/group-shape.ts` `isNamedGroup`), move a treatment from its detail page,
 wizard "Group" field, a group colour dot on dashboard dose rows. Groups are
-organizational only — never touch scheduling.
+organizational only — never touch scheduling. **Post-MVP · Notifications live** —
+the M7 channels wired up for the deploy: `netlify/functions/tick.mts` → every
+5 min; `POST /api/telegram/webhook` (secret_token = `TICK_SECRET`) so `/start`
+linking is instant on serverless (`handleTelegramUpdate` shared with the tick's
+`getUpdates` poll, which self-disables once a webhook is set); `npm run
+telegram:setup` registers it. Web Push is config-only (4 `VAPID_*` env vars) —
+fixed a latent hydration bug in `browser-notifications-toggle.tsx` (client-only
+`Notification.permission` read → `useSyncExternalStore`). See `NOTIFICATIONS.md`.
 
 **Deferred beyond MVP:** real AI/OCR extraction, per-phase `ruleOverride`
 tapering, link-upload-to-existing-plan, S3 driver, calendar-by-group,

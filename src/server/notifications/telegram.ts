@@ -2,6 +2,9 @@ import { env, telegramEnabled } from "@/env";
 import { prisma } from "@/server/db/client";
 
 import type { NotificationChannel } from "./channel";
+import { type TelegramUpdate, telegramStartToken } from "./telegram-parse";
+
+export { type TelegramUpdate, telegramStartToken } from "./telegram-parse";
 
 interface TelegramResponse {
   ok: boolean;
@@ -24,6 +27,35 @@ export async function telegramApi(
     },
   );
   return (await res.json()) as TelegramResponse;
+}
+
+/**
+ * If `update` is a `/start <token>` whose token matches a user's
+ * `telegramLinkToken`, link that user's chat and reply. Shared by the tick's
+ * `getUpdates` poll (local dev) and the production webhook route. Returns
+ * whether a user was linked.
+ */
+export async function handleTelegramUpdate(
+  update: TelegramUpdate,
+): Promise<boolean> {
+  const start = telegramStartToken(update);
+  if (!start) return false;
+
+  const user = await prisma.user.findUnique({
+    where: { telegramLinkToken: start.token },
+    select: { id: true },
+  });
+  if (!user) return false;
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { telegramChatId: String(start.chatId), telegramLinkToken: null },
+  });
+  await telegramApi("sendMessage", {
+    chat_id: start.chatId,
+    text: "✓ Connected to RxFlow — dose reminders will arrive here.",
+  });
+  return true;
 }
 
 export const telegramChannel: NotificationChannel = {

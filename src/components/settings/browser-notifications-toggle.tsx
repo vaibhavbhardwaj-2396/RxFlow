@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 
 import { buttonClass } from "@/components/ui/button";
 
@@ -14,6 +14,18 @@ function urlBase64ToUint8Array(base64: string): BufferSource {
   return bytes;
 }
 
+const NOOP = () => () => {};
+
+/** The browser's Notification permission, hydration-safe (null on the server). */
+function useNotificationPermission(): NotificationPermission | null {
+  return useSyncExternalStore(
+    NOOP,
+    () =>
+      typeof Notification !== "undefined" ? Notification.permission : null,
+    () => null,
+  );
+}
+
 export function BrowserNotificationsToggle({
   subscribed: initial,
 }: {
@@ -21,11 +33,14 @@ export function BrowserNotificationsToggle({
 }) {
   const [subscribed, setSubscribed] = useState(initial);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(() =>
-    typeof Notification !== "undefined" && Notification.permission === "denied"
+  const [message, setMessage] = useState<string | null>(null);
+  const permission = useNotificationPermission();
+
+  const shownMessage =
+    message ??
+    (permission === "denied"
       ? "Notifications are blocked in your browser settings. Allow them for this site, then try again."
-      : null,
-  );
+      : null);
 
   const enable = async () => {
     setBusy(true);
@@ -98,7 +113,7 @@ export function BrowserNotificationsToggle({
           {busy ? "…" : subscribed ? "Turn off" : "Enable"}
         </button>
       </div>
-      {message && <p className="text-xs text-warn">{message}</p>}
+      {shownMessage && <p className="text-xs text-warn">{shownMessage}</p>}
     </div>
   );
 }

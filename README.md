@@ -108,6 +108,7 @@ same Wi-Fi. If you see a cross-origin dev warning, set `DEV_ALLOWED_ORIGINS` in
 | `npm run seed` | Load dev seed data |
 | `npm run tick` | Run the background job once (missed-sweep + reminders — M7) |
 | `npm run tick:watch` | Same, looped every 60s (needs the dev server running) |
+| `npm run telegram:setup` | Point the Telegram bot's webhook at the deploy ([NOTIFICATIONS.md](NOTIFICATIONS.md)) |
 | `npm run seed:remote` | Seed a remote DB (no local Postgres) — used once against Neon |
 
 ---
@@ -147,9 +148,10 @@ imports. Full rationale in the assessment linked above.
 
 Netlify (Next.js runtime) + Neon Postgres, connected to GitHub so every push to
 `main` deploys. `netlify.toml` runs `prisma migrate deploy` before the build;
-two scheduled functions (`netlify/functions/`) run the `tick` job every 15
+two scheduled functions (`netlify/functions/`) run the `tick` job every 5
 minutes and re-seed the demo account nightly. Prescription upload stays off on
-the deploy. **Full walkthrough: [DEPLOY.md](DEPLOY.md).**
+the deploy. **Full walkthrough: [DEPLOY.md](DEPLOY.md)** · reminder channels
+(in-app / Web Push / Telegram): **[NOTIFICATIONS.md](NOTIFICATIONS.md)**.
 
 ---
 

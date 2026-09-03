@@ -15,7 +15,10 @@ import { INITIAL_HORIZON_DAYS } from "@/lib/treatment-mapping";
 import { prisma } from "@/server/db/client";
 import { deliver } from "@/server/notifications/dispatch";
 import { reminderPayload } from "@/server/notifications/payload";
-import { telegramApi } from "@/server/notifications/telegram";
+import {
+  handleTelegramUpdate,
+  telegramApi,
+} from "@/server/notifications/telegram";
 import {
   doseSpecsFromRows,
   occurrenceCreateRows,
@@ -322,32 +325,14 @@ async function pollTelegram(): Promise<number> {
 
   const updates = res.result as Array<{
     update_id: number;
-    message?: { chat?: { id: number }; text?: string };
+    message?: { chat?: { id?: number }; text?: string };
   }>;
 
   let linked = 0;
   let newOffset = offset;
   for (const update of updates) {
     newOffset = Math.max(newOffset, update.update_id);
-    const match = (update.message?.text ?? "").match(/^\/start\s+(\S+)/);
-    const chatId = update.message?.chat?.id;
-    if (!match || !chatId) continue;
-
-    const user = await prisma.user.findUnique({
-      where: { telegramLinkToken: match[1] },
-      select: { id: true },
-    });
-    if (!user) continue;
-
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { telegramChatId: String(chatId), telegramLinkToken: null },
-    });
-    await telegramApi("sendMessage", {
-      chat_id: chatId,
-      text: "✓ Connected to RxFlow — dose reminders will arrive here.",
-    });
-    linked += 1;
+    if (await handleTelegramUpdate(update)) linked += 1;
   }
 
   if (newOffset !== offset) {

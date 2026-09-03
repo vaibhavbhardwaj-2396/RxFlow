@@ -26,6 +26,7 @@
     "seed:remote": "tsx --env-file-if-exists=.env prisma/seed.ts",
     "tick": "tsx --env-file-if-exists=.env scripts/tick.ts",
     "tick:watch": "npm run tick -- --watch",
+    "telegram:setup": "tsx --env-file-if-exists=.env scripts/telegram-setup.ts",
     "postinstall": "prisma generate && (lefthook install || true)"
   },
   "dependencies": {

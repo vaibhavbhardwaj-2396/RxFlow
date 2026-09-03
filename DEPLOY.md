@@ -49,7 +49,9 @@ then `neon link --project-id <id> --branch production`.
    | `NEXT_PUBLIC_DEMO_ENABLED` | `true` |
 
    Leave `FEATURE_PRESCRIPTION_UPLOAD` **unset** (defaults to `false`).
-   `VAPID_*`, `TELEGRAM_*`, `RESEND_API_KEY` stay unset.
+   `RESEND_API_KEY` stays unset. Add `VAPID_*` (Web Push) and `TELEGRAM_BOT_*`
+   (Telegram) when you want those reminder channels — see
+   [NOTIFICATIONS.md](NOTIFICATIONS.md).
 
 4. **Deploy site.** The build runs `prisma migrate deploy` (a no-op — migrations
    are already applied) then `next build`.
@@ -71,7 +73,7 @@ database.
 
 - Open the site → **Try the demo** → the dashboard loads with real doses.
 - Register a new account → it starts empty and is isolated from the demo.
-- **Netlify → Functions** shows `tick` (every 15 min) and `demo-reset` (nightly).
+- **Netlify → Functions** shows `tick` (every 5 min) and `demo-reset` (nightly).
 - Manually poke the job:
   ```bash
   curl -X POST -H "authorization: Bearer <TICK_SECRET>" \
