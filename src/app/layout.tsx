@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans, Spectral } from "next/font/google";
 
+import { env } from "@/env";
+
 import "./globals.css";
 
 const plexSans = IBM_Plex_Sans({
@@ -18,6 +20,7 @@ const spectral = Spectral({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(env.NEXT_PUBLIC_APP_URL),
   title: {
     default: "RxFlow",
     template: "%s · RxFlow",

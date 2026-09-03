@@ -18,6 +18,10 @@ prescriber said, and asks the user to clarify anything ambiguous.
 
 **The MVP is complete — milestones M0–M9.**
 
+- **Public product homepage** at `/` — a marketing site that tells the one
+  story (messy instructions → a living plan → today → what's next), with
+  interactive product previews built from the real demo domain. Signed-in
+  visitors are sent straight to their dashboard
 - Next.js 16 (App Router, RSC, Turbopack) · React 19 · TypeScript strict · Tailwind v4
 - PostgreSQL (project-local cluster) · Prisma
 - Auth.js v5 — email + password (Argon2id), JWT sessions, multi-user
