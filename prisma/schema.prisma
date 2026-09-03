@@ -1,0 +1,61 @@
+// Regimen — Prisma schema
+// Milestone M0: identity + preferences only. Treatment-plan, occurrence,
+// adherence and reminder models arrive in M2+.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// A person using Regimen. Auth is email + password (Argon2id), JWT sessions.
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String
+  displayName   String?
+  /// IANA timezone, e.g. "Asia/Kolkata". All scheduling math resolves against this.
+  timezone      String    @default("Asia/Kolkata")
+  /// Null until the address is verified. Not enforced yet (soft verification).
+  emailVerified DateTime?
+  /// Marks the shared read-only portfolio demo account.
+  isDemo        Boolean   @default(false)
+
+  settings  UserSettings?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@map("users")
+}
+
+/// Per-user preferences that the scheduling and reminder engines read.
+model UserSettings {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Named times of day used to resolve relative dose timings
+  /// ("after dinner" -> dinner time). JSON map of slug -> "HH:mm".
+  defaultTimes Json @default("{\"morning\":\"08:00\",\"breakfast\":\"08:30\",\"lunch\":\"13:00\",\"dinner\":\"20:00\",\"beforeSleep\":\"22:30\"}")
+
+  /// How far ahead of a scheduled dose a reminder fires.
+  reminderLeadMinutes Int @default(15)
+
+  /// Optional do-not-disturb window: {"start":"22:00","end":"07:00"} or null.
+  quietHours Json?
+
+  /// A still-`scheduled` occurrence older than this many minutes past its time
+  /// is swept to `missed`. Default 0 = at end of the local calendar day.
+  missedGraceMinutes Int @default(0)
+
+  /// Notification channels the user has enabled, e.g. ["in_app","web_push"].
+  enabledChannels String[] @default(["in_app"])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_settings")
+}

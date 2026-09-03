@@ -1,0 +1,19 @@
+# Git hooks (installed by `lefthook install`, run automatically by `npm install`).
+pre-commit:
+  parallel: true
+  commands:
+    secrets:
+      run: npx secretlint --maskSecrets "**/*"
+    format:
+      glob: "*.{ts,tsx,js,mjs,json,css}"
+      run: npx prettier --check {staged_files}
+    lint:
+      glob: "*.{ts,tsx}"
+      run: npx eslint --no-warn-ignored {staged_files}
+
+pre-push:
+  commands:
+    typecheck:
+      run: npx tsc --noEmit
+    test:
+      run: npx vitest run
