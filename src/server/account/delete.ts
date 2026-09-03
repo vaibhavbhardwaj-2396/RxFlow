@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { isNamedGroup } from "@/lib/group-shape";
 import { auth, signOut } from "@/server/auth";
 import { prisma } from "@/server/db/client";
 import { fileStore } from "@/server/storage";
@@ -15,8 +16,9 @@ export interface DeleteResult {
  * Permanently delete one treatment: the row plus everything derived from it —
  * recurrence, phase cycle, dose times, occurrences, adherence events, reminders,
  * and any notification-log rows that referenced those occurrences. If the
- * treatment's plan is left empty and has no source prescription, the plan goes
- * too. This is not "mark complete" — completion never deletes anything.
+ * treatment's plan was just a solo "shadow" plan (not a named group), it goes
+ * too — an emptied named group is kept. This is not "mark complete" —
+ * completion never deletes anything.
  */
 export async function deleteTreatmentAction(id: string): Promise<DeleteResult> {
   const session = await auth();
@@ -26,12 +28,17 @@ export async function deleteTreatmentAction(id: string): Promise<DeleteResult> {
   const treatment = await prisma.treatment.findFirst({
     where: { id, userId },
     select: {
+      name: true,
       planId: true,
       occurrences: { select: { id: true } },
       plan: {
         select: {
+          title: true,
+          kind: true,
+          color: true,
+          archivedAt: true,
           prescription: { select: { id: true } },
-          _count: { select: { treatments: true } },
+          treatments: { select: { name: true } },
         },
       },
     },
@@ -40,7 +47,15 @@ export async function deleteTreatmentAction(id: string): Promise<DeleteResult> {
 
   const occurrenceIds = treatment.occurrences.map((o) => o.id);
   const planNowEmpty =
-    treatment.plan._count.treatments === 1 && !treatment.plan.prescription;
+    treatment.plan.treatments.length === 1 &&
+    !isNamedGroup({
+      title: treatment.plan.title,
+      kind: treatment.plan.kind,
+      color: treatment.plan.color,
+      archivedAt: treatment.plan.archivedAt,
+      hasPrescription: Boolean(treatment.plan.prescription),
+      treatmentNames: treatment.plan.treatments.map((t) => t.name),
+    });
 
   await prisma.$transaction(async (tx) => {
     if (occurrenceIds.length > 0) {

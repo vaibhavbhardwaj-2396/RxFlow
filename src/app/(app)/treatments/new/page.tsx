@@ -8,6 +8,7 @@ import { localToday } from "@/domain/time";
 import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/client";
 import { createTreatmentAction } from "@/server/treatments/create";
+import { listGroupOptionsForUser } from "@/server/treatments/groups";
 import { getRequestClock } from "@/server/time/request-clock";
 
 export const metadata: Metadata = { title: "Add treatment" };
@@ -37,6 +38,7 @@ export default async function NewTreatmentPage({
     string,
     string
   >;
+  const groupOptions = await listGroupOptionsForUser(session.user.id);
 
   return (
     <div className="flex flex-col gap-5">
@@ -53,6 +55,7 @@ export default async function NewTreatmentPage({
         timezone={user.timezone}
         defaultTimes={defaultTimes}
         submit={createTreatmentAction}
+        groupOptions={groupOptions}
       />
     </div>
   );

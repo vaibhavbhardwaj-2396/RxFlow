@@ -1,14 +1,14 @@
-import { CalendarPlus, FileUp, Sparkles } from "lucide-react";
+import { CalendarPlus, FileUp, FolderPlus, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { TreatmentList } from "@/components/treatments/treatment-list";
+import { TreatmentGroups } from "@/components/treatments/treatment-groups";
 import { buttonClass } from "@/components/ui/button";
 import { localToday } from "@/domain/time";
 import { env } from "@/env";
 import { auth } from "@/server/auth";
-import { listTreatmentsForUser } from "@/server/treatments/queries";
+import { listTreatmentGroupsForUser } from "@/server/treatments/groups";
 import { getRequestClock } from "@/server/time/request-clock";
 
 export const metadata: Metadata = { title: "Treatments" };
@@ -25,11 +25,17 @@ export default async function TreatmentsPage({
 
   const clock = await getRequestClock(now);
   const today = localToday(clock, session.user.timezone);
-  const treatments = await listTreatmentsForUser(session.user.id, today);
+  const view = await listTreatmentGroupsForUser(session.user.id, today);
+  const count =
+    view.ungrouped.length +
+    [...view.groups, ...view.archived].reduce(
+      (n, g) => n + g.treatments.length,
+      0,
+    );
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-faint">
             Your plan
@@ -38,8 +44,16 @@ export default async function TreatmentsPage({
             Treatments
           </h1>
         </div>
-        {treatments.length > 0 && (
+        {count > 0 && (
           <div className="flex shrink-0 gap-2">
+            <Link
+              href="/treatments/groups/new"
+              prefetch
+              aria-label="New group"
+              className={buttonClass("secondary", "md")}
+            >
+              <FolderPlus className="size-4" aria-hidden />
+            </Link>
             {env.FEATURE_PRESCRIPTION_UPLOAD && (
               <Link
                 href="/prescriptions"
@@ -60,7 +74,7 @@ export default async function TreatmentsPage({
         )}
       </div>
 
-      {treatments.length === 0 && (
+      {count === 0 ? (
         <section className="flex flex-col items-center gap-4 rounded-2xl border border-line bg-surface px-6 py-12 text-center">
           <span className="flex size-12 items-center justify-center rounded-full bg-accent-soft text-accent">
             <Sparkles className="size-6" aria-hidden />
@@ -71,7 +85,7 @@ export default async function TreatmentsPage({
             </h2>
             <p className="mx-auto mt-1 max-w-xs text-sm text-ink-muted">
               Add one and RxFlow builds the schedule, generates every dose, and
-              (soon) reminds you.
+              reminds you. Organise them into groups as they add up.
             </p>
           </div>
           <Link href="/treatments/new" className={buttonClass("primary", "md")}>
@@ -87,9 +101,9 @@ export default async function TreatmentsPage({
             </Link>
           )}
         </section>
+      ) : (
+        <TreatmentGroups view={view} />
       )}
-
-      {treatments.length > 0 && <TreatmentList treatments={treatments} />}
     </div>
   );
 }

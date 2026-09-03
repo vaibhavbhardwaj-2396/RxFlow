@@ -18,7 +18,16 @@ export async function buildAccountExport(userId: string) {
       emailVerified: true,
       createdAt: true,
       settings: true,
-      plans: { select: { id: true, title: true, createdAt: true } },
+      plans: {
+        select: {
+          id: true,
+          title: true,
+          kind: true,
+          color: true,
+          archivedAt: true,
+          createdAt: true,
+        },
+      },
       treatments: {
         select: {
           id: true,

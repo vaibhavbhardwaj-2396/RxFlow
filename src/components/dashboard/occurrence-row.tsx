@@ -6,6 +6,7 @@ import { useOptimistic, useState, useTransition } from "react";
 
 import type { OccurrenceStatus } from "@/domain/adherence";
 import { cn } from "@/lib/cn";
+import { groupColorClasses } from "@/lib/group-color";
 import {
   type OccurrenceActionResult,
   completeOccurrence,
@@ -61,10 +62,20 @@ export function OccurrenceRow({ item }: { item: OccurrenceCardVM }) {
           </div>
           <p
             className={cn(
-              "truncate font-medium",
+              "flex items-center gap-1.5 truncate font-medium",
               settled ? "text-ink-muted line-through" : "text-ink",
             )}
           >
+            {item.groupName && (
+              <span
+                className={cn(
+                  "size-1.5 shrink-0 rounded-full",
+                  groupColorClasses(item.groupColor).dot,
+                )}
+                title={item.groupName}
+                aria-label={`Group: ${item.groupName}`}
+              />
+            )}
             {item.treatmentName}
           </p>
           {item.doseText && (

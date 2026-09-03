@@ -34,6 +34,12 @@ export async function createTreatmentAction(
   if (!parsed.success) return { fieldErrors: fieldErrorsOf(parsed.error) };
   const data = parsed.data;
 
+  const chosenGroupId =
+    typeof (input as { groupId?: unknown })?.groupId === "string" &&
+    (input as { groupId: string }).groupId.length > 0
+      ? (input as { groupId: string }).groupId
+      : null;
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { timezone: true, settings: { select: { defaultTimes: true } } },
@@ -54,17 +60,32 @@ export async function createTreatmentAction(
     };
   }
 
+  // A chosen group must be the user's own.
+  const groupId = chosenGroupId
+    ? ((
+        await prisma.treatmentPlan.findFirst({
+          where: { id: chosenGroupId, userId },
+          select: { id: true },
+        })
+      )?.id ?? null)
+    : null;
+
   const clock = await getRequestClock();
   const now = clock.now().toJSDate();
 
   await prisma.$transaction(async (tx) => {
-    const plan = await tx.treatmentPlan.create({
-      data: { userId, title: data.name },
-    });
+    const planId =
+      groupId ??
+      (
+        await tx.treatmentPlan.create({
+          data: { userId, title: data.name },
+          select: { id: true },
+        })
+      ).id;
     await persistTreatmentFromDraft(tx, {
       data,
       userId,
-      planId: plan.id,
+      planId,
       timezone: user.timezone,
       defaultTimes,
       now,

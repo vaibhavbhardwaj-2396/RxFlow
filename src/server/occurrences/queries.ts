@@ -24,6 +24,9 @@ export interface OccurrenceCardVM {
   localTime: string;
   status: OccurrenceStatus;
   overdue: boolean;
+  /** The treatment's group — a colour dot + label on the dose row. */
+  groupName: string | null;
+  groupColor: string | null;
 }
 
 export interface DaySection {
@@ -61,7 +64,21 @@ export async function getDayBoard(
       localTime: true,
       status: true,
       scheduledAt: true,
-      treatment: { select: { name: true, doseText: true, category: true } },
+      treatment: {
+        select: {
+          name: true,
+          doseText: true,
+          category: true,
+          plan: {
+            select: {
+              title: true,
+              color: true,
+              _count: { select: { treatments: true } },
+              prescription: { select: { id: true } },
+            },
+          },
+        },
+      },
     },
   });
 
@@ -81,15 +98,25 @@ export async function getDayBoard(
     treatments: cluster.treatmentIds.map((id) => nameById.get(id) ?? "A dose"),
   }));
 
-  const items: OccurrenceCardVM[] = occurrences.map((o) => ({
-    id: o.id,
-    treatmentName: o.treatment.name,
-    doseText: o.treatment.doseText,
-    category: o.treatment.category,
-    localTime: o.localTime,
-    status: o.status,
-    overdue: isPending(o.status) && o.scheduledAt.getTime() < now.getTime(),
-  }));
+  const items: OccurrenceCardVM[] = occurrences.map((o) => {
+    const p = o.treatment.plan;
+    const named =
+      p.title !== o.treatment.name ||
+      p._count.treatments > 1 ||
+      Boolean(p.prescription) ||
+      p.color != null;
+    return {
+      id: o.id,
+      treatmentName: o.treatment.name,
+      doseText: o.treatment.doseText,
+      category: o.treatment.category,
+      localTime: o.localTime,
+      status: o.status,
+      overdue: isPending(o.status) && o.scheduledAt.getTime() < now.getTime(),
+      groupName: named ? p.title : null,
+      groupColor: named ? p.color : null,
+    };
+  });
 
   const sections: DaySection[] = DAY_PART_ORDER.map((part) => ({
     part,

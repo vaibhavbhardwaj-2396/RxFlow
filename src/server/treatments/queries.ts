@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+
 import {
   type AdherenceEventType,
   type AdherenceSummary,
@@ -33,61 +35,82 @@ export interface TreatmentListItem {
   nextOccurrenceDate: string | null;
 }
 
+/** The Prisma include the list/group views need per treatment. */
+export const TREATMENT_LIST_INCLUDE = {
+  recurrence: true,
+  phaseCycle: { include: { phases: { orderBy: { orderIndex: "asc" } } } },
+  doseTimes: { orderBy: { orderIndex: "asc" } },
+  _count: { select: { occurrences: true } },
+} as const;
+
+type TreatmentListRow = Prisma.TreatmentGetPayload<{
+  include: typeof TREATMENT_LIST_INCLUDE;
+}>;
+
+/** One Prisma row → the list view-model. Shared by the flat list and groups. */
+export function toTreatmentListItem(
+  t: TreatmentListRow,
+  defaultTimes: Record<string, string>,
+  nextOccurrenceDate: string | null,
+): TreatmentListItem {
+  const rule = t.recurrence ? recurrenceRuleFromRow(t.recurrence) : null;
+  const cycle = t.phaseCycle
+    ? phaseCycleFromRows(t.phaseCycle, t.phaseCycle.phases)
+    : null;
+  const specs = doseSpecsFromRows(t.doseTimes);
+  return {
+    id: t.id,
+    name: t.name,
+    category: t.category,
+    status: t.status,
+    needsConfirmation: t.recurrence?.needsConfirmation ?? false,
+    recurrenceSummary: rule ? describeRecurrence(rule) : "—",
+    windowSummary: cycle ? describeWindow(plainDate(t.anchorDate), cycle) : "—",
+    doseSummary:
+      specs.length > 0 ? describeDoseTimes(specs, defaultTimes) : "—",
+    occurrenceCount: t._count.occurrences,
+    nextOccurrenceDate,
+  };
+}
+
+/** Next scheduled dose per treatment, as a Map. */
+export async function nextDoseByTreatment(
+  userId: string,
+  today: string,
+): Promise<Map<string, string>> {
+  const rows = await prisma.scheduledOccurrence.groupBy({
+    by: ["treatmentId"],
+    where: { userId, status: "scheduled", localDate: { gte: today } },
+    _min: { localDate: true },
+  });
+  return new Map(
+    rows.flatMap((r) =>
+      r._min.localDate ? [[r.treatmentId, r._min.localDate]] : [],
+    ),
+  );
+}
+
 /** Everything the treatments list page needs, as plain view-models. */
 export async function listTreatmentsForUser(
   userId: string,
   today: string,
 ): Promise<TreatmentListItem[]> {
-  const [rows, upcoming, settings] = await Promise.all([
+  const [rows, nextByTreatment, settings] = await Promise.all([
     prisma.treatment.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
-      include: {
-        recurrence: true,
-        phaseCycle: { include: { phases: { orderBy: { orderIndex: "asc" } } } },
-        doseTimes: { orderBy: { orderIndex: "asc" } },
-        _count: { select: { occurrences: true } },
-      },
+      include: TREATMENT_LIST_INCLUDE,
     }),
-    prisma.scheduledOccurrence.groupBy({
-      by: ["treatmentId"],
-      where: { userId, status: "scheduled", localDate: { gte: today } },
-      _min: { localDate: true },
-    }),
+    nextDoseByTreatment(userId, today),
     prisma.userSettings.findUnique({
       where: { userId },
       select: { defaultTimes: true },
     }),
   ]);
-
-  const nextByTreatment = new Map(
-    upcoming.map((u) => [u.treatmentId, u._min.localDate]),
-  );
   const defaultTimes = (settings?.defaultTimes ?? {}) as Record<string, string>;
-
-  return rows.map((t) => {
-    const rule = t.recurrence ? recurrenceRuleFromRow(t.recurrence) : null;
-    const cycle = t.phaseCycle
-      ? phaseCycleFromRows(t.phaseCycle, t.phaseCycle.phases)
-      : null;
-    const specs = doseSpecsFromRows(t.doseTimes);
-
-    return {
-      id: t.id,
-      name: t.name,
-      category: t.category,
-      status: t.status,
-      needsConfirmation: t.recurrence?.needsConfirmation ?? false,
-      recurrenceSummary: rule ? describeRecurrence(rule) : "—",
-      windowSummary: cycle
-        ? describeWindow(plainDate(t.anchorDate), cycle)
-        : "—",
-      doseSummary:
-        specs.length > 0 ? describeDoseTimes(specs, defaultTimes) : "—",
-      occurrenceCount: t._count.occurrences,
-      nextOccurrenceDate: nextByTreatment.get(t.id) ?? null,
-    };
-  });
+  return rows.map((t) =>
+    toTreatmentListItem(t, defaultTimes, nextByTreatment.get(t.id) ?? null),
+  );
 }
 
 export interface OccurrenceLine {
@@ -124,6 +147,7 @@ export interface TreatmentDetail {
   upcoming: OccurrenceLine[];
   recent: OccurrenceLine[];
   history: AdherenceHistoryLine[];
+  group: { id: string; title: string; color: string | null } | null;
 }
 
 /** Everything the `/treatments/[id]` page shows, or `null` if not the user's. */
@@ -138,6 +162,15 @@ export async function getTreatmentDetail(
       recurrence: true,
       phaseCycle: { include: { phases: { orderBy: { orderIndex: "asc" } } } },
       doseTimes: { orderBy: { orderIndex: "asc" } },
+      plan: {
+        select: {
+          id: true,
+          title: true,
+          color: true,
+          _count: { select: { treatments: true } },
+          prescription: { select: { id: true } },
+        },
+      },
     },
   });
   if (!t) return null;
@@ -234,5 +267,12 @@ export async function getTreatmentDetail(
       localTime: e.occurrence.localTime,
       type: e.type,
     })),
+    group:
+      t.plan.title !== t.name ||
+      t.plan._count.treatments > 1 ||
+      t.plan.prescription ||
+      t.plan.color
+        ? { id: t.plan.id, title: t.plan.title, color: t.plan.color }
+        : null,
   };
 }

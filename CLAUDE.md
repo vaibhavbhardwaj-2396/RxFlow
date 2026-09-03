@@ -88,9 +88,26 @@ never a medical claim. **a11y**: skip link + `<main id>`, `aria-live` on dose
 actions, native-`<dialog>` `ConfirmDialog` (focus trap + return), wizard focus
 moves to the step heading. `Treatment.deletedAt` dropped (real delete
 replaces it). **Renamed Regimen → RxFlow** across the UI/metadata/comments.
+
+**Post-MVP · Deploy** — Netlify (Next.js runtime) + Neon Postgres,
+GitHub-connected; `netlify.toml` runs `prisma migrate deploy` in the build; two
+Netlify scheduled functions (`netlify/functions/`) run the `tick` job every 15
+min and re-seed the demo nightly. `neon` CLI linked (project `divine-mud-18655802`
+"RxFlow"), Neon Auth off (Auth.js stays), `.claude/skills/` vendored. See
+`DEPLOY.md`. **Post-MVP · Perf** — `(app)/loading.tsx` + `staleTimes` +
+`<Link prefetch>` + session-carried timezone → navigation is a client-cache hit
+(~60 ms, 0 RSC). **Post-MVP · Groups** — `TreatmentPlan` surfaced in the UI as a
+**Group** (`+ GroupKind {ongoing,course}`, `color`, `archivedAt`): `/treatments`
+grouped by group (header = colour dot + kind badge + inferred course-end),
+`/treatments/groups/{new,[id]/edit}`, `src/server/treatments/group-actions.ts`
+(create/update/archive/move), a "shadow" solo plan renders flat under "Ungrouped"
+(`src/lib/group-shape.ts` `isNamedGroup`), move a treatment from its detail page,
+wizard "Group" field, a group colour dot on dashboard dose rows. Groups are
+organizational only — never touch scheduling.
+
 **Deferred beyond MVP:** real AI/OCR extraction, per-phase `ruleOverride`
-tapering, link-upload-to-existing-plan, S3 driver — all interfaces kept
-extensible.
+tapering, link-upload-to-existing-plan, S3 driver, calendar-by-group,
+group-level adherence rollups — all interfaces kept extensible.
 
 ## Stack
 

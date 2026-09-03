@@ -45,6 +45,8 @@ export interface WizardDraft {
   doseTimes: Array<
     { kind: "clock"; value: string } | { kind: "relative"; anchor: string }
   >;
+  /** Chosen group for a new treatment; "" = its own solo plan. Create flow only. */
+  groupId?: string;
 }
 
 export function initialDraft(today: string): WizardDraft {

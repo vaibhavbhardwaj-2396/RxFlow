@@ -33,6 +33,7 @@ interface TreatmentWizardProps {
   draft?: WizardDraft;
   submit: (input: unknown) => Promise<WizardSubmitResult>;
   submitLabel?: string;
+  groupOptions?: Array<{ id: string; title: string }>;
 }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -46,6 +47,7 @@ export function TreatmentWizard({
   draft: seed,
   submit,
   submitLabel,
+  groupOptions = [],
 }: TreatmentWizardProps) {
   const [draft, setDraft] = useState<WizardDraft>(
     () => seed ?? initialDraft(today),
@@ -116,7 +118,12 @@ export function TreatmentWizard({
       </h2>
 
       {step === 0 && (
-        <BasicsStep draft={draft} update={update} errors={errors} />
+        <BasicsStep
+          draft={draft}
+          update={update}
+          errors={errors}
+          groupOptions={mode === "create" ? groupOptions : []}
+        />
       )}
       {step === 1 && (
         <ScheduleStep draft={draft} update={update} errors={errors} />

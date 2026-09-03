@@ -11,6 +11,7 @@ import type {
 import { ConfirmScheduleForm } from "./confirm-schedule-form";
 import { DeleteTreatmentButton } from "./delete-treatment-button";
 import { PhaseProgressBar } from "./phase-progress-bar";
+import { TreatmentGroupPicker } from "./treatment-group-picker";
 import { TreatmentRemindersToggle } from "./treatment-reminders-toggle";
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -39,19 +40,30 @@ const STATUS_LABEL: Record<string, string> = {
 const fmtDay = (d: string) =>
   DateTime.fromISO(d, { zone: "utc" }).toFormat("ccc d LLL");
 
-export function TreatmentDetail({ detail }: { detail: Detail }) {
+export function TreatmentDetail({
+  detail,
+  groupOptions,
+}: {
+  detail: Detail;
+  groupOptions: Array<{ id: string; title: string }>;
+}) {
   const a = detail.adherence;
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-3">
-        <div>
+        <div className="flex flex-col gap-2">
           <p className="text-xs uppercase tracking-wide text-ink-faint">
             {CATEGORY_LABEL[detail.category] ?? detail.category}
           </p>
-          <h1 className="mt-1 font-display text-2xl font-semibold text-ink">
+          <h1 className="font-display text-2xl font-semibold text-ink">
             {detail.name}
           </h1>
+          <TreatmentGroupPicker
+            treatmentId={detail.id}
+            current={detail.group}
+            options={groupOptions}
+          />
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2">
           <Link

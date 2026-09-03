@@ -44,7 +44,12 @@ const WEEKDAYS = [
   { value: 7, label: "Sun" },
 ] as const;
 
-export function BasicsStep({ draft, update, errors }: StepProps) {
+export function BasicsStep({
+  draft,
+  update,
+  errors,
+  groupOptions = [],
+}: StepProps & { groupOptions?: Array<{ id: string; title: string }> }) {
   return (
     <div className="flex flex-col gap-5">
       <TextField
@@ -56,6 +61,23 @@ export function BasicsStep({ draft, update, errors }: StepProps) {
         autoFocus
         error={errors.name}
       />
+      {groupOptions.length > 0 && (
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink">Group (optional)</span>
+          <select
+            value={draft.groupId ?? ""}
+            onChange={(e) => update({ groupId: e.target.value })}
+            className={selectClass}
+          >
+            <option value="">Its own group</option>
+            {groupOptions.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.title}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <RadioGroup
         legend="Category"
         name="category"

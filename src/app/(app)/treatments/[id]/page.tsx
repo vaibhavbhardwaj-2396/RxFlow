@@ -7,6 +7,7 @@ import { TreatmentDetail } from "@/components/treatments/treatment-detail";
 import { localToday } from "@/domain/time";
 import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/client";
+import { listGroupOptionsForUser } from "@/server/treatments/groups";
 import { getTreatmentDetail } from "@/server/treatments/queries";
 import { getRequestClock } from "@/server/time/request-clock";
 
@@ -38,15 +39,12 @@ export default async function TreatmentPage({
   const session = await auth();
   if (!session?.user?.id) redirect("/sign-in");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    select: { timezone: true },
-  });
-  if (!user) redirect("/sign-in");
-
   const clock = await getRequestClock(now);
-  const today = localToday(clock, user.timezone);
-  const detail = await getTreatmentDetail(session.user.id, id, today);
+  const today = localToday(clock, session.user.timezone);
+  const [detail, groupOptions] = await Promise.all([
+    getTreatmentDetail(session.user.id, id, today),
+    listGroupOptionsForUser(session.user.id),
+  ]);
   if (!detail) notFound();
 
   return (
@@ -58,7 +56,7 @@ export default async function TreatmentPage({
         <ArrowLeft className="size-4" aria-hidden />
         Treatments
       </Link>
-      <TreatmentDetail detail={detail} />
+      <TreatmentDetail detail={detail} groupOptions={groupOptions} />
     </div>
   );
 }
