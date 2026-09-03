@@ -27,10 +27,12 @@ instructions. Ambiguity is surfaced to the user, never guessed.
 
 ## Milestones
 
-M0 scaffold/auth ✅ · M1 recurrence engine + tests (gate) · M2 manual creation ·
-M3 Today dashboard · M4 treatment detail · M5 calendar · M6 phase cycles +
-intersection · M7 reminders/missed-sweep · M8 prescription upload + verification ·
-M9 settings/a11y/conflicts.
+M0 scaffold/auth ✅ · M1 recurrence engine + tests (gate) ✅ — `src/domain/`,
+recurrence × phase-cycle intersection built now (not deferred) · M2 manual
+creation · M3 Today dashboard · M4 treatment detail · M5 calendar · M6 the M1
+engine's remaining UX (times_per_week confirm flow, relative-dose settings,
+per-phase tapering override, "what's changing" feed) · M7 reminders/missed-sweep
+· M8 prescription upload + verification · M9 settings/a11y/conflicts.
 
 ## Stack
 
