@@ -1,20 +1,37 @@
 "use client";
 
-import { CalendarDays, House, Pill, Settings } from "lucide-react";
+import { CalendarDays, FileText, House, Pill, Settings } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { cn } from "@/lib/cn";
 
-const ITEMS = [
-  { href: "/dashboard", label: "Today", icon: House, ready: true },
-  { href: "/treatments", label: "Treatments", icon: Pill, ready: true },
-  { href: "/calendar", label: "Calendar", icon: CalendarDays, ready: true },
-  { href: "/settings", label: "Settings", icon: Settings, ready: true },
+const BASE_ITEMS = [
+  { href: "/dashboard", label: "Today", icon: House },
+  { href: "/treatments", label: "Treatments", icon: Pill },
+  { href: "/calendar", label: "Calendar", icon: CalendarDays },
 ] as const;
 
-export function BottomNav() {
+const SETTINGS_ITEM = {
+  href: "/settings",
+  label: "Settings",
+  icon: Settings,
+} as const;
+
+export function BottomNav({
+  prescriptionsEnabled = false,
+}: {
+  prescriptionsEnabled?: boolean;
+}) {
   const pathname = usePathname();
+
+  const items = [
+    ...BASE_ITEMS,
+    ...(prescriptionsEnabled
+      ? [{ href: "/prescriptions", label: "Rx", icon: FileText } as const]
+      : []),
+    SETTINGS_ITEM,
+  ];
 
   return (
     <nav
@@ -23,41 +40,25 @@ export function BottomNav() {
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <ul className="mx-auto flex max-w-2xl">
-        {ITEMS.map(({ href, label, icon: Icon, ready }) => {
+        {items.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`);
-          const content = (
-            <span
-              className={cn(
-                "flex flex-1 flex-col items-center gap-1 py-2.5 text-[0.7rem] font-medium",
-                active ? "text-accent" : "text-ink-faint",
-                !ready && "opacity-60",
-              )}
-            >
-              <Icon className="size-5" aria-hidden />
-              {label}
-              {!ready && <span className="sr-only">(coming soon)</span>}
-            </span>
-          );
-
           return (
             <li key={href} className="flex flex-1">
-              {ready ? (
-                <Link
-                  href={href}
-                  aria-current={active ? "page" : undefined}
-                  className="flex flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]"
-                >
-                  {content}
-                </Link>
-              ) : (
+              <Link
+                href={href}
+                aria-current={active ? "page" : undefined}
+                className="flex flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--ring)]"
+              >
                 <span
-                  aria-disabled="true"
-                  title="Coming soon"
-                  className="flex flex-1 cursor-not-allowed"
+                  className={cn(
+                    "flex flex-1 flex-col items-center gap-1 py-2.5 text-[0.7rem] font-medium",
+                    active ? "text-accent" : "text-ink-faint",
+                  )}
                 >
-                  {content}
+                  <Icon className="size-5" aria-hidden />
+                  {label}
                 </span>
-              )}
+              </Link>
             </li>
           );
         })}

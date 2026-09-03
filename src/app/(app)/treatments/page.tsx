@@ -1,4 +1,4 @@
-import { CalendarPlus, Sparkles } from "lucide-react";
+import { CalendarPlus, FileUp, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { TreatmentList } from "@/components/treatments/treatment-list";
 import { buttonClass } from "@/components/ui/button";
 import { localToday } from "@/domain/time";
+import { env } from "@/env";
 import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/client";
 import { listTreatmentsForUser } from "@/server/treatments/queries";
@@ -45,10 +46,24 @@ export default async function TreatmentsPage({
           </h1>
         </div>
         {treatments.length > 0 && (
-          <Link href="/treatments/new" className={buttonClass("primary", "md")}>
-            <CalendarPlus className="size-4" aria-hidden />
-            Add
-          </Link>
+          <div className="flex shrink-0 gap-2">
+            {env.FEATURE_PRESCRIPTION_UPLOAD && (
+              <Link
+                href="/prescriptions"
+                className={buttonClass("secondary", "md")}
+              >
+                <FileUp className="size-4" aria-hidden />
+                <span className="sr-only sm:not-sr-only">Prescription</span>
+              </Link>
+            )}
+            <Link
+              href="/treatments/new"
+              className={buttonClass("primary", "md")}
+            >
+              <CalendarPlus className="size-4" aria-hidden />
+              Add
+            </Link>
+          </div>
         )}
       </div>
 
@@ -70,6 +85,14 @@ export default async function TreatmentsPage({
             <CalendarPlus className="size-4" aria-hidden />
             Add your first treatment
           </Link>
+          {env.FEATURE_PRESCRIPTION_UPLOAD && (
+            <Link
+              href="/prescriptions/new"
+              className="text-sm font-medium text-accent hover:underline"
+            >
+              or upload a prescription to work from
+            </Link>
+          )}
         </section>
       )}
 

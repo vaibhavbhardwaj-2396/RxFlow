@@ -53,7 +53,21 @@ in-app (always on, `NotificationLog` + `/notifications` centre + unread bell),
 Web Push (VAPID + `public/sw.js`, env-gated), Telegram (`/start` deep-link poll,
 env-gated). Notifications carry name + time + deep link only — never dose or
 instructions. `/settings` reminders section; per-treatment reminders toggle ·
-M8 prescription upload + verification · M9 settings/a11y/conflicts.
+M8 prescription upload + manual verify ✅ — **manual-first**: an uploaded
+prescription is an optional *encrypted reference document*, never authoritative
+schedule data. `POST /api/prescriptions` (route handler, `formData`) →
+`EncryptedLocalFileStore` (AES-256-GCM under gitignored `./storage`, opaque
+`storageKey`); the file is served ONLY by `GET /api/prescriptions/[id]/file`
+(auth + ownership + `no-store`). `PrescriptionParser` port —
+`manualParser` (real, infers nothing) + `ocrAiParser` (documented stub,
+`available: () => false`). `/prescriptions` library + `/prescriptions/[id]`
+plan builder: reuses `TreatmentWizard` per card, mandatory per-card "checked
+against my prescription" + blocking `needsDayChoice`, `confirmPrescriptionPlanAction`
+→ one `TreatmentPlan` + `PrescriptionExtraction` (manual) + N `PrescriptionItem`
++ `persistTreatmentFromDraft` (shared with `create.ts`). Feature-gated by
+`FEATURE_PRESCRIPTION_UPLOAD` (nav "Rx" tab + routes + upload all check it).
+**Deferred to M9:** real AI/OCR extraction, link-to-existing-plan, hard delete
++ file shred, JSON export, S3 driver · M9 settings/a11y/conflicts.
 
 ## Stack
 

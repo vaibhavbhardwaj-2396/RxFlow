@@ -1,18 +1,8 @@
 "use server";
 
-import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { generateOccurrences } from "@/domain/scheduling";
-import { addDays, plainDate } from "@/domain/time";
-import {
-  INITIAL_HORIZON_DAYS,
-  doseSpecsFromInput,
-  phaseCycleFromInput,
-  recurrenceRuleFromInput,
-  toCreateData,
-} from "@/lib/treatment-mapping";
 import {
   createTreatmentSchema,
   fieldErrorsOf,
@@ -21,7 +11,7 @@ import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/client";
 import { getRequestClock } from "@/server/time/request-clock";
 
-import { occurrenceCreateRows } from "./mappers";
+import { persistTreatmentFromDraft, unknownDoseAnchor } from "./persist";
 
 export interface CreateTreatmentResult {
   error?: string;
@@ -55,84 +45,30 @@ export async function createTreatmentAction(
     string
   >;
 
-  const unknownAnchor = data.doseTimes.find(
-    (d) => d.kind === "relative" && defaultTimes[d.anchor] === undefined,
-  );
-  if (unknownAnchor?.kind === "relative") {
+  const badAnchor = unknownDoseAnchor(data.doseTimes, defaultTimes);
+  if (badAnchor) {
     return {
       fieldErrors: {
-        doseTimes: `You don't have a saved time for "${unknownAnchor.anchor}".`,
+        doseTimes: `You don't have a saved time for "${badAnchor}".`,
       },
     };
   }
 
   const clock = await getRequestClock();
-  const anchor = plainDate(data.anchorDate);
-
-  const occurrences = generateOccurrences({
-    anchor,
-    recurrenceRule: recurrenceRuleFromInput(data.recurrence, anchor),
-    phaseCycle: phaseCycleFromInput(data.window),
-    doseTimes: doseSpecsFromInput(data.doseTimes),
-    timezone: user.timezone,
-    defaultTimes,
-    scheduleVersion: 1,
-    range: { from: anchor, to: addDays(anchor, INITIAL_HORIZON_DAYS) },
-  });
-
-  const nested = toCreateData({
-    anchorDate: data.anchorDate,
-    recurrence: data.recurrence,
-    window: data.window,
-    doseTimes: data.doseTimes,
-  });
-
-  // A "3× a week" with no chosen days waits for the user to pick them (M6).
-  const unconfirmed = nested.recurrence.needsConfirmation;
+  const now = clock.now().toJSDate();
 
   await prisma.$transaction(async (tx) => {
     const plan = await tx.treatmentPlan.create({
       data: { userId, title: data.name },
     });
-
-    const treatment = await tx.treatment.create({
-      data: {
-        userId,
-        planId: plan.id,
-        name: data.name,
-        category: data.category,
-        instructionsText: data.instructionsText,
-        doseText: data.doseText,
-        anchorDate: data.anchorDate,
-        timezone: user.timezone,
-        scheduleVersion: 1,
-        status: unconfirmed ? "draft" : "active",
-        confirmedAt: unconfirmed ? null : clock.now().toJSDate(),
-        recurrence: {
-          create: {
-            type: nested.recurrence.type,
-            config: nested.recurrence.config as Prisma.InputJsonValue,
-            recurrenceAnchor: nested.recurrence.recurrenceAnchor,
-            needsConfirmation: nested.recurrence.needsConfirmation,
-          },
-        },
-        phaseCycle: {
-          create: {
-            repeatMode: nested.phaseCycle.repeatMode,
-            repeatCount: nested.phaseCycle.repeatCount,
-            repeatUntil: nested.phaseCycle.repeatUntil,
-            phases: { create: nested.phaseCycle.phases },
-          },
-        },
-        doseTimes: { create: nested.doseTimes },
-      },
+    await persistTreatmentFromDraft(tx, {
+      data,
+      userId,
+      planId: plan.id,
+      timezone: user.timezone,
+      defaultTimes,
+      now,
     });
-
-    if (occurrences.length > 0) {
-      await tx.scheduledOccurrence.createMany({
-        data: occurrenceCreateRows(occurrences, treatment.id, userId),
-      });
-    }
   });
 
   revalidatePath("/treatments");

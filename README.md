@@ -16,7 +16,7 @@ prescriber said, and asks the user to clarify anything ambiguous.
 
 ## Status
 
-**Milestones M0–M7 complete.**
+**Milestones M0–M8 complete.**
 
 - Next.js 16 (App Router, RSC, Turbopack) · React 19 · TypeScript strict · Tailwind v4
 - PostgreSQL (project-local cluster) · Prisma
@@ -43,8 +43,15 @@ prescriber said, and asks the user to clarify anything ambiguous.
   Notifications carry only the treatment name, time, and a deep link — never
   dose text or instructions. `/settings` tunes reminders; `/notifications` is the
   in-app centre with an unread bell
+- **Prescription upload** — manual-first: upload a photo or PDF as an *encrypted
+  reference document* (AES-256-GCM at rest, served only through an authenticated
+  `no-store` route — never a public URL), then structure each treatment it lists
+  by hand, check every card against the document, and confirm to build the plan.
+  A `PrescriptionParser` port keeps a stub in place for an AI "help me fill this
+  in" assistant later. Flag-gated by `FEATURE_PRESCRIPTION_UPLOAD` (off on the
+  public demo)
 
-Next: **M8 — prescription upload & verification.** See
+Next: **M9 — settings, accessibility & conflict detection.** See
 [the architecture assessment](https://claude.ai/code/artifact/a1d81ed8-346f-41d6-bafd-afa42c3bd22b)
 and `~/.claude/plans/okay-before-we-start-greedy-pearl.md`.
 
@@ -126,9 +133,14 @@ imports. Full rationale in the assessment linked above.
 
 ## Security & privacy notes
 
-- Prescriptions are sensitive. Prescription upload (M8) is gated behind
-  `FEATURE_PRESCRIPTION_UPLOAD` and stays **off** on any public deployment until
-  its encrypted-storage and retention story is built and reviewed.
+- Prescriptions are sensitive. Upload is gated behind
+  `FEATURE_PRESCRIPTION_UPLOAD` and stays **off** on the public demo. Uploaded
+  files are AES-256-GCM encrypted at rest in a local store (`./storage`,
+  gitignored) under an opaque, user-scoped key, and are only ever returned
+  through an authenticated, ownership-checked, `no-store` route — never a public
+  or static path. A prescription is treated as a reference document; nothing is
+  parsed from it for medical meaning, and the user structures and confirms every
+  treatment by hand.
 - No secrets in the repo: `.env` is gitignored, a `secretlint` pre-commit hook
   runs on every commit, and `.env.example` carries placeholders only.
 - Notifications leave the app only as a treatment name, a time, and a deep link.

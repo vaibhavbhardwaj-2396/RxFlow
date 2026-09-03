@@ -4,23 +4,14 @@ import { DateTime } from "luxon";
 import { useMemo } from "react";
 
 import { buttonClass } from "@/components/ui/button";
-import {
-  type GeneratedOccurrence,
-  generateOccurrences,
-} from "@/domain/scheduling";
-import { addDays, plainDate } from "@/domain/time";
+import type { GeneratedOccurrence } from "@/domain/scheduling";
+import { previewSchedule } from "@/lib/schedule-preview";
 import {
   describeDoseTimes,
   describeRecurrence,
   describeWindow,
 } from "@/lib/schedule-summary";
-import {
-  INITIAL_HORIZON_DAYS,
-  doseSpecsFromInput,
-  phaseCycleFromInput,
-  recurrenceRuleFromInput,
-} from "@/lib/treatment-mapping";
-import { createTreatmentSchema } from "@/lib/validation/treatment";
+import { INITIAL_HORIZON_DAYS } from "@/lib/treatment-mapping";
 
 import type { WizardDraft } from "./wizard-draft";
 
@@ -48,7 +39,7 @@ export function ReviewStep({
   regenerateNote = false,
 }: ReviewStepProps) {
   const preview = useMemo(
-    () => build(draft, timezone, defaultTimes),
+    () => previewSchedule(draft, timezone, defaultTimes),
     [draft, timezone, defaultTimes],
   );
 
@@ -103,7 +94,12 @@ export function ReviewStep({
       {preview.kind === "error" && (
         <p className="text-sm text-danger">{preview.message}</p>
       )}
-      {preview.kind === "ok" && (
+      {preview.kind === "ok" && preview.needsDayChoice && (
+        <p className="rounded-lg bg-warn/10 px-3 py-2 text-sm text-warn">
+          You&rsquo;ll choose which days this falls on right after creating it.
+        </p>
+      )}
+      {preview.kind === "ok" && !preview.needsDayChoice && (
         <OccurrencePreview occurrences={preview.occurrences} />
       )}
 
@@ -203,49 +199,4 @@ function OccurrencePreview({
       </ol>
     </div>
   );
-}
-
-type PreviewResult =
-  | { kind: "incomplete" }
-  | { kind: "error"; message: string }
-  | {
-      kind: "ok";
-      occurrences: GeneratedOccurrence[];
-      anchor: ReturnType<typeof plainDate>;
-      rule: ReturnType<typeof recurrenceRuleFromInput>;
-      cycle: ReturnType<typeof phaseCycleFromInput>;
-      specs: ReturnType<typeof doseSpecsFromInput>;
-    };
-
-function build(
-  draft: WizardDraft,
-  timezone: string,
-  defaultTimes: Record<string, string>,
-): PreviewResult {
-  const parsed = createTreatmentSchema.safeParse(draft);
-  if (!parsed.success) return { kind: "incomplete" };
-  const d = parsed.data;
-
-  try {
-    const anchor = plainDate(d.anchorDate);
-    const rule = recurrenceRuleFromInput(d.recurrence, anchor);
-    const cycle = phaseCycleFromInput(d.window);
-    const specs = doseSpecsFromInput(d.doseTimes);
-    const occurrences = generateOccurrences({
-      anchor,
-      recurrenceRule: rule,
-      phaseCycle: cycle,
-      doseTimes: specs,
-      timezone,
-      defaultTimes,
-      scheduleVersion: 1,
-      range: { from: anchor, to: addDays(anchor, INITIAL_HORIZON_DAYS) },
-    });
-    return { kind: "ok", occurrences, anchor, rule, cycle, specs };
-  } catch (e) {
-    return {
-      kind: "error",
-      message: e instanceof Error ? e.message : "Could not build the schedule.",
-    };
-  }
 }

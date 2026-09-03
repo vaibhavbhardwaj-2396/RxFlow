@@ -38,6 +38,9 @@ yarn-error.log*
 # project-local postgres cluster
 /.pgdata
 
+# encrypted prescription uploads (M8) — local file store
+/storage
+
 # lefthook local overrides
 /lefthook-local.yml
 

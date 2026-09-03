@@ -7,7 +7,7 @@ import { NotificationBell } from "@/components/app/notification-bell";
 import { PushRegistrar } from "@/components/app/push-registrar";
 import { SignOutButton } from "@/components/app/sign-out-button";
 import { localToday } from "@/domain/time";
-import { isProd } from "@/env";
+import { env, isProd } from "@/env";
 import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/client";
 import { unreadNotificationCount } from "@/server/notifications/queries";
@@ -67,7 +67,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         </div>
       )}
 
-      <BottomNav />
+      <BottomNav prescriptionsEnabled={env.FEATURE_PRESCRIPTION_UPLOAD} />
     </div>
   );
 }

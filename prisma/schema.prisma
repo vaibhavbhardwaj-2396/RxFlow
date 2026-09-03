@@ -1,7 +1,8 @@
 // Regimen — Prisma schema
 // M0: identity + preferences. M2: the treatment plan — treatments, their
 // recurrence rule and phase cycle, dose times, and generated occurrences.
-// Adherence events (M3), reminders (M7) and prescriptions (M8) arrive later.
+// M3: adherence events. M7: reminders + notification channels. M8: uploaded
+// prescriptions (encrypted reference documents) and the manual verify pipeline.
 
 generator client {
   provider = "prisma-client-js"
@@ -38,6 +39,7 @@ model User {
   reminders         Reminder[]
   notifications     NotificationLog[]
   pushSubscriptions PushSubscription[]
+  prescriptions     Prescription[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -122,7 +124,9 @@ model TreatmentPlan {
 
   title String
 
-  treatments Treatment[]
+  treatments   Treatment[]
+  /// Set when this plan was built from an uploaded prescription (M8).
+  prescription Prescription?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -158,10 +162,12 @@ model Treatment {
   deletedAt        DateTime?
   remindersEnabled Boolean         @default(true)
 
-  recurrence  RecurrenceRule?
-  phaseCycle  PhaseCycle?
-  doseTimes   DoseTime[]
-  occurrences ScheduledOccurrence[]
+  recurrence       RecurrenceRule?
+  phaseCycle       PhaseCycle?
+  doseTimes        DoseTime[]
+  occurrences      ScheduledOccurrence[]
+  /// Set when this treatment was confirmed from a prescription item (M8).
+  prescriptionItem PrescriptionItem?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -372,4 +378,113 @@ model SystemState {
   updatedAt DateTime @updatedAt
 
   @@map("system_state")
+}
+
+enum PrescriptionSourceType {
+  image
+  pdf
+}
+
+enum PrescriptionStatus {
+  uploaded
+  in_review
+  confirmed
+  archived
+}
+
+enum PrescriptionItemStatus {
+  proposed
+  accepted
+  dismissed
+}
+
+/// An uploaded prescription document. It is an optional, encrypted *reference*
+/// — never authoritative schedule data. The file lives in the encrypted store
+/// (`storageKey` is an opaque key, never a URL) and is served only through an
+/// authenticated, no-store route. The source document, every parse attempt, and
+/// the confirmed treatment plan are kept as separate append-only records.
+model Prescription {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The plan built from this prescription, once the user confirms it.
+  planId String?        @unique
+  plan   TreatmentPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+
+  sourceType   PrescriptionSourceType
+  status       PrescriptionStatus     @default(uploaded)
+  /// Opaque key within the encrypted file store — NOT a public path or URL.
+  storageKey   String
+  mimeType     String
+  byteSize     Int
+  /// SHA-256 (hex) of the plaintext bytes, for integrity.
+  checksum     String
+  originalName String?
+  /// The user's own free-text note about this document.
+  note         String?
+
+  extractions PrescriptionExtraction[]
+  items       PrescriptionItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@map("prescriptions")
+}
+
+/// One parse attempt against a prescription. The manual pipeline writes a single
+/// `parserName = "manual"` row snapshotting the drafts the user entered. This is
+/// the seam a future AI parser plugs into (a new attempt), leaving the source and
+/// the confirmed plan untouched.
+model PrescriptionExtraction {
+  id             String       @id @default(cuid())
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  attempt           Int
+  /// "manual" | "ocr_ai"
+  parserName        String
+  parserVersion     String
+  model             String?
+  /// "ok" | "failed"
+  status            String
+  rawResponse       Json?
+  /// Normalised snapshot: { items: WizardDraft[] }.
+  structured        Json
+  overallConfidence Float?
+  error             String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([prescriptionId, attempt])
+  @@map("prescription_extractions")
+}
+
+/// A single proposed/entered treatment from a prescription — kept distinct from
+/// the confirmed `Treatment` so the "what was proposed" record survives edits.
+model PrescriptionItem {
+  id             String       @id @default(cuid())
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+  extractionId   String?
+
+  orderIndex      Int
+  /// The `WizardDraft` that produced the treatment.
+  extractedFields Json
+  /// Per-field confidence, when a parser provides it. Null for manual entry.
+  fieldConfidence Json?
+  /// Human-readable notes the user could not resolve ("doctor said 3–4×/week").
+  ambiguityFlags  String[]               @default([])
+  status          PrescriptionItemStatus @default(proposed)
+
+  treatmentId String?    @unique
+  treatment   Treatment? @relation(fields: [treatmentId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([prescriptionId])
+  @@map("prescription_items")
 }
