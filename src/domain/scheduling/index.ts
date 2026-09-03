@@ -1,9 +1,42 @@
 // Scheduling engine — the heart of Regimen.
 //
-// M1 fills this in: RecurrenceRule + `isOn(date)`, duration arithmetic, and
-// single-window occurrence generation, all pure and exhaustively tested.
-// M6 adds the PhaseCycle expansion and the recurrence x availability
-// intersection. See the assessment (section 04) and
-// ~/.claude/plans/okay-before-we-start-greedy-pearl.md.
+// Recurrence and phase availability are modelled as independent concepts and
+// intersected to produce occurrences. Interval recurrence keeps a fixed anchor
+// across breaks. Everything here is pure: plain inputs, plain data out, no
+// `Date.now()`, no I/O. See the assessment (section 04) and
+// ~/.claude/plans/hidden-jumping-ullman.md.
 
-export {};
+export {
+  type RecurrenceRule,
+  type Weekday,
+  isOn,
+  needsConfirmation,
+} from "./recurrence";
+export { type Duration, windowEndExclusive } from "./duration";
+export {
+  type PhaseCycle,
+  type PhaseKind,
+  type PhaseTemplate,
+  type PhaseWindow,
+  type Repeat,
+  expandPhaseCycle,
+} from "./phase-cycle";
+export {
+  type DoseTimeSpec,
+  type HhMm,
+  type ResolvedDoseTime,
+  type TimeSpecSnapshot,
+  resolveDoseTime,
+} from "./dose-time";
+export {
+  type GeneratedOccurrence,
+  type GenerateInput,
+  generateOccurrences,
+} from "./generate-occurrences";
+export {
+  InvalidDurationError,
+  InvalidPhaseCycleError,
+  InvalidWallTimeError,
+  RecurrenceNeedsConfirmationError,
+  UnknownDoseAnchorError,
+} from "./errors";
