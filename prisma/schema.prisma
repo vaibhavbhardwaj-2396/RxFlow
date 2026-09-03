@@ -25,10 +25,11 @@ model User {
   /// Marks the shared read-only portfolio demo account.
   isDemo        Boolean   @default(false)
 
-  settings    UserSettings?
-  plans       TreatmentPlan[]
-  treatments  Treatment[]
-  occurrences ScheduledOccurrence[]
+  settings        UserSettings?
+  plans           TreatmentPlan[]
+  treatments      Treatment[]
+  occurrences     ScheduledOccurrence[]
+  adherenceEvents AdherenceEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -92,6 +93,13 @@ enum OccurrenceStatus {
   completed
   skipped
   missed
+}
+
+enum AdherenceEventType {
+  completed
+  skipped
+  missed
+  reopened
 }
 
 /// Groups one or more treatments. Manual creation makes a one-treatment plan;
@@ -244,9 +252,36 @@ model ScheduledOccurrence {
   scheduleVersion  Int
   status           OccurrenceStatus @default(scheduled)
 
+  adherenceEvents AdherenceEvent[]
+
   createdAt DateTime @default(now())
 
   @@index([userId, localDate])
   @@index([treatmentId, scheduleVersion, status])
   @@map("scheduled_occurrences")
+}
+
+/// Append-only. What the user did about an occurrence, and when. Marking,
+/// un-marking (`reopened`) and the M7 missed-sweep all add a row — nothing here
+/// is ever edited or deleted. The occurrence's `status` is a projection of the
+/// latest event.
+model AdherenceEvent {
+  id           String              @id @default(cuid())
+  occurrenceId String
+  occurrence   ScheduledOccurrence @relation(fields: [occurrenceId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type        AdherenceEventType
+  /// When the dose was actually taken / skipped. Equals the event time for now;
+  /// backdating ("I took it this morning") comes later.
+  effectiveAt DateTime
+  /// Where the event originated: "dashboard" | "reminder" | "calendar" | "tick".
+  source      String
+
+  createdAt DateTime @default(now())
+
+  @@index([occurrenceId])
+  @@index([userId])
+  @@map("adherence_events")
 }

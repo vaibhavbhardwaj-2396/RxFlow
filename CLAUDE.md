@@ -31,7 +31,9 @@ M0 scaffold/auth ✅ · M1 recurrence engine + tests (gate) ✅ — `src/domain/
 recurrence × phase-cycle intersection built now (not deferred) · M2 manual
 creation ✅ — wizard → review → confirm → `generateOccurrences` → list; treatment
 + recurrence + phaseCycle + doseTime + occurrence tables; single ACTIVE window
-only (cycle builder is M6) · M3 Today dashboard · M4 treatment detail · M5
+only (cycle builder is M6) · M3 Today dashboard ✅ — doses grouped by time of day,
+mark complete/skip/undo, append-only `AdherenceEvent` log, `src/domain/adherence/`
+state machine · M4 treatment detail · M5
 calendar · M6 the M1 engine's remaining UX (phase-cycle builder, times_per_week
 confirm flow, relative-dose settings, per-phase tapering override, "what's
 changing" feed) · M7 reminders/missed-sweep · M8 prescription upload +

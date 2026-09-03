@@ -16,7 +16,7 @@ prescriber said, and asks the user to clarify anything ambiguous.
 
 ## Status
 
-**Milestones M0–M2 complete.**
+**Milestones M0–M3 complete.**
 
 - Next.js 16 (App Router, RSC, Turbopack) · React 19 · TypeScript strict · Tailwind v4
 - PostgreSQL (project-local cluster) · Prisma
@@ -26,8 +26,10 @@ prescriber said, and asks the user to clarify anything ambiguous.
   intersection, timezone-resolved occurrence generation, exhaustively unit-tested
 - **Manual treatment creation** — a wizard that generates every dose on confirm,
   persists the plan, and lists it
+- **Today dashboard** — doses grouped by time of day, marked complete / skipped
+  explicitly, backed by an append-only adherence log
 
-Next: **M3 — the Today dashboard.** See
+Next: **M4 — the treatment detail page.** See
 [the architecture assessment](https://claude.ai/code/artifact/a1d81ed8-346f-41d6-bafd-afa42c3bd22b)
 and `~/.claude/plans/okay-before-we-start-greedy-pearl.md`.
 
