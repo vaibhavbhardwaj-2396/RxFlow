@@ -1,4 +1,4 @@
-import { type OccurrenceStatus, isPending } from "./state";
+import type { OccurrenceStatus } from "./state";
 
 /**
  * Neutral counts for a set of occurrences (a day, a treatment, a week). Not a
@@ -13,21 +13,27 @@ export interface AdherenceSummary {
   pending: number;
 }
 
+/** Fold a `{ status: count }` map (e.g. a Prisma `groupBy`) into a summary. */
+export function summariseCounts(
+  counts: Partial<Record<OccurrenceStatus, number>>,
+): AdherenceSummary {
+  const at = (status: OccurrenceStatus) => counts[status] ?? 0;
+  const pending = at("scheduled") + at("reminder_sent");
+  return {
+    completed: at("completed"),
+    skipped: at("skipped"),
+    missed: at("missed"),
+    pending,
+    total: at("completed") + at("skipped") + at("missed") + pending,
+  };
+}
+
 export function summariseStatuses(
   statuses: OccurrenceStatus[],
 ): AdherenceSummary {
-  const summary: AdherenceSummary = {
-    total: statuses.length,
-    completed: 0,
-    skipped: 0,
-    missed: 0,
-    pending: 0,
-  };
+  const counts: Partial<Record<OccurrenceStatus, number>> = {};
   for (const status of statuses) {
-    if (status === "completed") summary.completed += 1;
-    else if (status === "skipped") summary.skipped += 1;
-    else if (status === "missed") summary.missed += 1;
-    else if (isPending(status)) summary.pending += 1;
+    counts[status] = (counts[status] ?? 0) + 1;
   }
-  return summary;
+  return summariseCounts(counts);
 }

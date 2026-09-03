@@ -1,5 +1,6 @@
 "use client";
 
+import { DateTime } from "luxon";
 import { Plus, X } from "lucide-react";
 
 import { RadioGroup } from "@/components/ui/radio-group";
@@ -215,7 +216,12 @@ export function ScheduleStep({ draft, update, errors }: StepProps) {
 
 type DurationChoice = "for" | "until" | "ongoing";
 
-export function DurationStep({ draft, update, errors }: StepProps) {
+export function DurationStep({
+  draft,
+  update,
+  errors,
+  startDateLocked = false,
+}: StepProps & { startDateLocked?: boolean }) {
   const d = draft.duration;
   const choice: DurationChoice =
     d.kind === "until" ? "until" : d.kind === "ongoing" ? "ongoing" : "for";
@@ -238,14 +244,24 @@ export function DurationStep({ draft, update, errors }: StepProps) {
 
   return (
     <div className="flex flex-col gap-5">
-      <TextField
-        label="Start date"
-        name="anchorDate"
-        type="date"
-        value={draft.anchorDate}
-        onChange={(e) => update({ anchorDate: e.target.value })}
-        error={errors.anchorDate}
-      />
+      {startDateLocked ? (
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-ink">Start date</span>
+          <p className="text-sm text-ink-muted">
+            Started {fmtStartDate(draft.anchorDate)} — a treatment&rsquo;s start
+            date is fixed.
+          </p>
+        </div>
+      ) : (
+        <TextField
+          label="Start date"
+          name="anchorDate"
+          type="date"
+          value={draft.anchorDate}
+          onChange={(e) => update({ anchorDate: e.target.value })}
+          error={errors.anchorDate}
+        />
+      )}
 
       <RadioGroup
         legend="For how long?"
@@ -402,6 +418,11 @@ export function DoseTimesStep({
       )}
     </div>
   );
+}
+
+function fmtStartDate(date: string): string {
+  const dt = DateTime.fromISO(date, { zone: "utc" });
+  return dt.isValid ? dt.toFormat("d LLL yyyy") : date;
 }
 
 function clampInt(raw: string, min: number, max: number, fallback: number) {

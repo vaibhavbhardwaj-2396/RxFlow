@@ -1,13 +1,16 @@
 import type {
   DoseTime as DoseTimeRow,
   PhaseCycle as PhaseCycleRow,
+  Prisma,
   RecurrenceRule as RecurrenceRuleRow,
   TreatmentPhase as TreatmentPhaseRow,
 } from "@prisma/client";
+import { DateTime } from "luxon";
 
 import type {
   DoseTimeSpec,
   Duration,
+  GeneratedOccurrence,
   PhaseCycle,
   RecurrenceRule,
   Weekday,
@@ -16,6 +19,26 @@ import { plainDate } from "@/domain/time";
 
 // Prisma rows -> domain, for the list/detail views and M4 regeneration. The
 // input -> domain direction lives in `@/lib/treatment-mapping` (client-safe).
+
+/** Generated occurrences -> `createMany` rows. Shared by create and edit. */
+export function occurrenceCreateRows(
+  occurrences: GeneratedOccurrence[],
+  treatmentId: string,
+  userId: string,
+): Prisma.ScheduledOccurrenceCreateManyInput[] {
+  return occurrences.map((o) => ({
+    treatmentId,
+    userId,
+    scheduledAt: DateTime.fromISO(o.scheduledAt).toJSDate(),
+    localDate: o.localDate,
+    localTime: o.localTime,
+    timezone: o.timezone,
+    timeSpecSnapshot: o.timeSpecSnapshot as Prisma.InputJsonValue,
+    phaseIndex: o.phaseIndex,
+    scheduleVersion: o.scheduleVersion,
+    status: "scheduled",
+  }));
+}
 
 export function recurrenceRuleFromRow(row: RecurrenceRuleRow): RecurrenceRule {
   const anchor = plainDate(row.recurrenceAnchor);

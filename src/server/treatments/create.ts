@@ -1,7 +1,6 @@
 "use server";
 
 import type { Prisma } from "@prisma/client";
-import { DateTime } from "luxon";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -21,6 +20,8 @@ import {
 import { auth } from "@/server/auth";
 import { prisma } from "@/server/db/client";
 import { getRequestClock } from "@/server/time/request-clock";
+
+import { occurrenceCreateRows } from "./mappers";
 
 export interface CreateTreatmentResult {
   error?: string;
@@ -126,18 +127,7 @@ export async function createTreatmentAction(
 
     if (occurrences.length > 0) {
       await tx.scheduledOccurrence.createMany({
-        data: occurrences.map((o) => ({
-          treatmentId: treatment.id,
-          userId,
-          scheduledAt: DateTime.fromISO(o.scheduledAt).toJSDate(),
-          localDate: o.localDate,
-          localTime: o.localTime,
-          timezone: o.timezone,
-          timeSpecSnapshot: o.timeSpecSnapshot as Prisma.InputJsonValue,
-          phaseIndex: o.phaseIndex,
-          scheduleVersion: o.scheduleVersion,
-          status: "scheduled",
-        })),
+        data: occurrenceCreateRows(occurrences, treatment.id, userId),
       });
     }
   });

@@ -28,8 +28,10 @@ prescriber said, and asks the user to clarify anything ambiguous.
   persists the plan, and lists it
 - **Today dashboard** — doses grouped by time of day, marked complete / skipped
   explicitly, backed by an append-only adherence log
+- **Treatment detail + editing** — phase progress, timeline, adherence history;
+  editing the schedule regenerates only future doses and never touches history
 
-Next: **M4 — the treatment detail page.** See
+Next: **M5 — the calendar.** See
 [the architecture assessment](https://claude.ai/code/artifact/a1d81ed8-346f-41d6-bafd-afa42c3bd22b)
 and `~/.claude/plans/okay-before-we-start-greedy-pearl.md`.
 

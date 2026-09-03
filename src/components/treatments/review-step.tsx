@@ -32,6 +32,8 @@ interface ReviewStepProps {
   error?: string;
   onConfirm: () => void;
   onEdit: (step: number) => void;
+  submitLabel?: string;
+  regenerateNote?: boolean;
 }
 
 export function ReviewStep({
@@ -42,6 +44,8 @@ export function ReviewStep({
   error,
   onConfirm,
   onEdit,
+  submitLabel = "Confirm & create schedule",
+  regenerateNote = false,
 }: ReviewStepProps) {
   const preview = useMemo(
     () => build(draft, timezone, defaultTimes),
@@ -103,6 +107,13 @@ export function ReviewStep({
         <OccurrencePreview occurrences={preview.occurrences} />
       )}
 
+      {regenerateNote && (
+        <p className="rounded-lg bg-surface-sunken px-3 py-2 text-xs text-ink-muted">
+          Saving keeps every past dose and anything already marked done or
+          skipped. Only future scheduled doses are rebuilt from today.
+        </p>
+      )}
+
       {error && (
         <p
           role="alert"
@@ -118,7 +129,7 @@ export function ReviewStep({
         disabled={submitting || preview.kind !== "ok"}
         className={buttonClass("primary", "lg")}
       >
-        {submitting ? "Saving…" : "Confirm & create schedule"}
+        {submitting ? "Saving…" : submitLabel}
       </button>
     </div>
   );

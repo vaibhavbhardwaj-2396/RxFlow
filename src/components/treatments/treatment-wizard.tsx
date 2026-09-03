@@ -5,7 +5,6 @@ import { useState, useTransition } from "react";
 
 import { buttonClass } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
-import { createTreatmentAction } from "@/server/treatments/create";
 
 import { ReviewStep } from "./review-step";
 import {
@@ -21,10 +20,19 @@ import {
   ScheduleStep,
 } from "./wizard-steps";
 
+export type WizardSubmitResult = {
+  error?: string;
+  fieldErrors?: Record<string, string>;
+} | void;
+
 interface TreatmentWizardProps {
   today: string;
   timezone: string;
   defaultTimes: Record<string, string>;
+  mode?: "create" | "edit";
+  draft?: WizardDraft;
+  submit: (input: unknown) => Promise<WizardSubmitResult>;
+  submitLabel?: string;
 }
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -34,8 +42,14 @@ export function TreatmentWizard({
   today,
   timezone,
   defaultTimes,
+  mode = "create",
+  draft: seed,
+  submit,
+  submitLabel,
 }: TreatmentWizardProps) {
-  const [draft, setDraft] = useState<WizardDraft>(() => initialDraft(today));
+  const [draft, setDraft] = useState<WizardDraft>(
+    () => seed ?? initialDraft(today),
+  );
   const [step, setStep] = useState(0);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | undefined>(undefined);
@@ -56,7 +70,7 @@ export function TreatmentWizard({
 
   const confirm = () => {
     startTransition(async () => {
-      const result = await createTreatmentAction(draft);
+      const result = await submit(draft);
       if (result?.fieldErrors) {
         setErrors(result.fieldErrors);
         const target = FIELD_STEP[Object.keys(result.fieldErrors)[0] ?? ""];
@@ -95,7 +109,12 @@ export function TreatmentWizard({
         <ScheduleStep draft={draft} update={update} errors={errors} />
       )}
       {step === 2 && (
-        <DurationStep draft={draft} update={update} errors={errors} />
+        <DurationStep
+          draft={draft}
+          update={update}
+          errors={errors}
+          startDateLocked={mode === "edit"}
+        />
       )}
       {step === 3 && (
         <DoseTimesStep
@@ -114,6 +133,11 @@ export function TreatmentWizard({
           error={formError}
           onConfirm={confirm}
           onEdit={setStep}
+          submitLabel={
+            submitLabel ??
+            (mode === "edit" ? "Save changes" : "Confirm & create schedule")
+          }
+          regenerateNote={mode === "edit"}
         />
       )}
 

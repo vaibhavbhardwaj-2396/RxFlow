@@ -10,4 +10,8 @@ export {
   isPending,
   isSettled,
 } from "./state";
-export { type AdherenceSummary, summariseStatuses } from "./stats";
+export {
+  type AdherenceSummary,
+  summariseCounts,
+  summariseStatuses,
+} from "./stats";

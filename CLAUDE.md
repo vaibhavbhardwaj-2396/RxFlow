@@ -33,7 +33,10 @@ creation ✅ — wizard → review → confirm → `generateOccurrences` → lis
 + recurrence + phaseCycle + doseTime + occurrence tables; single ACTIVE window
 only (cycle builder is M6) · M3 Today dashboard ✅ — doses grouped by time of day,
 mark complete/skip/undo, append-only `AdherenceEvent` log, `src/domain/adherence/`
-state machine · M4 treatment detail · M5
+state machine · M4 treatment detail ✅ — `/treatments/[id]` (phase progress
+"Day N of M", timeline, adherence history) + edit-schedule: bumps
+`scheduleVersion`, deletes only future un-actioned occurrences, regenerates
+forward, leaves past + every `AdherenceEvent` intact · M5
 calendar · M6 the M1 engine's remaining UX (phase-cycle builder, times_per_week
 confirm flow, relative-dose settings, per-phase tapering override, "what's
 changing" feed) · M7 reminders/missed-sweep · M8 prescription upload +

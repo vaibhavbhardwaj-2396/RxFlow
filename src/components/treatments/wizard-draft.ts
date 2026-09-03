@@ -1,3 +1,8 @@
+import type {
+  DoseTimeSpec,
+  PhaseCycle,
+  RecurrenceRule,
+} from "@/domain/scheduling";
 import type { TreatmentCategoryValue } from "@/lib/validation/treatment";
 
 /** The wizard's working copy. Structurally a superset of `CreateTreatmentInput`
@@ -34,6 +39,72 @@ export function initialDraft(today: string): WizardDraft {
     duration: { kind: "weeks", value: 2 },
     doseTimes: [{ kind: "clock", value: "08:00" }],
   };
+}
+
+/** A persisted treatment reduced to what the wizard needs, for the edit flow. */
+export interface TreatmentRecord {
+  name: string;
+  category: TreatmentCategoryValue;
+  instructionsText: string | null;
+  doseText: string | null;
+  anchorDate: string;
+  recurrence: RecurrenceRule;
+  phaseCycle: PhaseCycle;
+  doseTimes: DoseTimeSpec[];
+}
+
+/** Seed a wizard draft from an existing treatment (edit mode). */
+export function draftFromRecord(record: TreatmentRecord): WizardDraft {
+  return {
+    name: record.name,
+    category: record.category,
+    instructionsText: record.instructionsText ?? "",
+    doseText: record.doseText ?? "",
+    anchorDate: record.anchorDate,
+    recurrence: recurrenceToDraft(record.recurrence),
+    duration: durationToDraft(record.phaseCycle),
+    doseTimes: record.doseTimes.map((d) =>
+      d.kind === "clock"
+        ? { kind: "clock", value: d.value }
+        : { kind: "relative", anchor: d.anchor },
+    ),
+  };
+}
+
+/** True when the wizard can't represent this cycle yet (M6 territory). */
+export function isCycleEditable(cycle: PhaseCycle): boolean {
+  return cycle.repeat.mode === "once" && cycle.phases.length === 1;
+}
+
+function recurrenceToDraft(rule: RecurrenceRule): WizardDraft["recurrence"] {
+  switch (rule.type) {
+    case "daily":
+      return { kind: "daily" };
+    case "specific_weekdays":
+      return { kind: "specific_weekdays", weekdays: [...rule.weekdays] };
+    case "interval_days":
+      return { kind: "interval_days", interval: rule.interval };
+    case "times_per_week":
+      return rule.weekdays && rule.weekdays.length > 0
+        ? { kind: "specific_weekdays", weekdays: [...rule.weekdays] }
+        : { kind: "daily" };
+  }
+}
+
+function durationToDraft(cycle: PhaseCycle): WizardDraft["duration"] {
+  const duration = cycle.phases[0]?.duration;
+  switch (duration?.kind) {
+    case "days":
+      return { kind: "days", value: duration.value };
+    case "weeks":
+      return { kind: "weeks", value: duration.value };
+    case "months":
+      return { kind: "months", value: duration.value };
+    case "until":
+      return { kind: "until", date: duration.date };
+    default:
+      return { kind: "ongoing" };
+  }
 }
 
 export const WIZARD_STEPS = [
