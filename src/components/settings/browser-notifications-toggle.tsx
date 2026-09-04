@@ -3,8 +3,10 @@
 import { useState, useSyncExternalStore } from "react";
 
 import { buttonClass } from "@/components/ui/button";
+import { withBase } from "@/lib/base-path";
 
 const VAPID = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+const SUBSCRIBE_URL = withBase("/api/push/subscribe");
 
 function urlBase64ToUint8Array(base64: string): BufferSource {
   const padding = "=".repeat((4 - (base64.length % 4)) % 4);
@@ -60,7 +62,7 @@ export function BrowserNotificationsToggle({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID ?? ""),
       });
-      const res = await fetch("/api/push/subscribe", {
+      const res = await fetch(SUBSCRIBE_URL, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(sub.toJSON()),
@@ -80,7 +82,7 @@ export function BrowserNotificationsToggle({
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
       if (sub) {
-        await fetch("/api/push/subscribe", {
+        await fetch(SUBSCRIBE_URL, {
           method: "DELETE",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ endpoint: sub.endpoint }),

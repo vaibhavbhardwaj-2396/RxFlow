@@ -5,7 +5,11 @@
  *
  * Optional: `npm run tick -- --now 2026-09-12T09:00:00Z` simulates the clock.
  */
-const BASE = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+// NEXT_PUBLIC_APP_URL is expected to already include NEXT_PUBLIC_BASE_PATH; the
+// localhost fallback appends it so `npm run tick` works when serving a subpath.
+const BASE =
+  process.env.NEXT_PUBLIC_APP_URL ??
+  `http://localhost:3000${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}`;
 const SECRET = process.env.TICK_SECRET ?? "";
 
 const args = process.argv.slice(2);

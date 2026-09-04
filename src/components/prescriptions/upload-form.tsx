@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 
 import { buttonClass } from "@/components/ui/button";
+import { withBase } from "@/lib/base-path";
 import { cn } from "@/lib/cn";
 
 const ACCEPT = "image/jpeg,image/png,image/webp,application/pdf";
@@ -42,7 +43,10 @@ export function UploadForm() {
     try {
       const body = new FormData();
       body.set("file", file);
-      const res = await fetch("/api/prescriptions", { method: "POST", body });
+      const res = await fetch(withBase("/api/prescriptions"), {
+        method: "POST",
+        body,
+      });
       setStage("encrypting");
       const json = (await res.json().catch(() => null)) as {
         id?: string;

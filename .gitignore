@@ -49,6 +49,8 @@ yarn-error.log*
 
 # netlify
 .netlify
+# generated at build time by scripts/gen-redirects.mjs
+/public/_redirects
 
 # typescript
 *.tsbuildinfo

@@ -1,5 +1,9 @@
 # Deploying RxFlow to Netlify + Neon
 
+> Serving RxFlow under `bhardwajvaibhav.com/rxflow` instead of its own domain?
+> That's a `basePath` + proxy setup — see **[LAUNCH.md](LAUNCH.md)**. This file
+> covers the standalone `rxflow-project.netlify.app` deploy.
+
 RxFlow runs on **Netlify's Next.js runtime** with a **Neon Postgres** database.
 Auth stays as the app's own Auth.js (credentials); Neon is Postgres only.
 Everything below is a one-time setup; after that, every push to `main` deploys.

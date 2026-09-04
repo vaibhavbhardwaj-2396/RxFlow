@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { withBase } from "@/lib/base-path";
 import { isNamedGroup } from "@/lib/group-shape";
 import { auth, signOut } from "@/server/auth";
 import { prisma } from "@/server/db/client";
@@ -129,6 +130,6 @@ export async function deleteAccountAction(
   );
   await prisma.user.delete({ where: { id: session.user.id } });
 
-  await signOut({ redirectTo: "/goodbye" });
+  await signOut({ redirectTo: withBase("/goodbye") });
   return {};
 }

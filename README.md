@@ -159,7 +159,12 @@ Netlify (Next.js runtime) + Neon Postgres, connected to GitHub so every push to
 two scheduled functions (`netlify/functions/`) run the `tick` job every 5
 minutes and re-seed the demo account nightly. Prescription upload stays off on
 the deploy. **Full walkthrough: [DEPLOY.md](DEPLOY.md)** · reminder channels
-(in-app / Web Push / Telegram): **[NOTIFICATIONS.md](NOTIFICATIONS.md)**.
+(in-app / Web Push / Telegram): **[NOTIFICATIONS.md](NOTIFICATIONS.md)** ·
+serving under a subpath (`bhardwajvaibhav.com/rxflow`): **[LAUNCH.md](LAUNCH.md)**.
+
+The whole app honours a configurable `NEXT_PUBLIC_BASE_PATH` (empty by default),
+so it can be mounted under a subpath behind a proxy and later moved to its own
+domain with an env change, not a code change.
 
 ---
 

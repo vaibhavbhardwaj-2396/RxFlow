@@ -1,6 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
+import { BASE_PATH } from "@/lib/base-path";
 import { credentialsSchema } from "@/lib/validation/auth";
 import { prisma } from "@/server/db/client";
 
@@ -8,6 +9,10 @@ import { verifyPassword } from "./password";
 
 export const authConfig = {
   trustHost: true,
+  // Auth's own routes live under Next's basePath. `AUTH_URL` must be set on the
+  // deploy when RxFlow runs behind a reverse proxy (the origin sees the wrong
+  // Host header).
+  basePath: `${BASE_PATH}/api/auth`,
   session: { strategy: "jwt" },
   pages: {
     signIn: "/sign-in",

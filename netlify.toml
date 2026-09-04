@@ -3,7 +3,9 @@
 # so migrations run, pins Node, and helps bundle Prisma's native engine.
 
 [build]
-  command = "npx prisma migrate deploy && npm run build"
+  # gen-redirects writes public/_redirects from NEXT_PUBLIC_BASE_PATH (bounces
+  # this origin's bare "/" to the subpath mount point; no-op at the root).
+  command = "node scripts/gen-redirects.mjs && npx prisma migrate deploy && npm run build"
   publish = ".next"
 
 [build.environment]

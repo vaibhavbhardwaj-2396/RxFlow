@@ -3,6 +3,7 @@
 import { AuthError } from "next-auth";
 
 import { demoEnabled } from "@/env";
+import { withBase } from "@/lib/base-path";
 import { credentialsSchema, registerSchema } from "@/lib/validation/auth";
 import { signIn, signOut } from "@/server/auth";
 import { prisma } from "@/server/db/client";
@@ -32,7 +33,7 @@ export async function signInAction(
     await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
-      redirectTo: "/dashboard",
+      redirectTo: withBase("/dashboard"),
     });
   } catch (error) {
     // A successful sign-in throws a redirect, which must propagate.
@@ -75,7 +76,7 @@ export async function registerAction(
     await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
-      redirectTo: "/dashboard",
+      redirectTo: withBase("/dashboard"),
     });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -87,7 +88,7 @@ export async function registerAction(
 }
 
 export async function signOutAction(): Promise<void> {
-  await signOut({ redirectTo: "/sign-in" });
+  await signOut({ redirectTo: withBase("/sign-in") });
 }
 
 /** One-click sign-in to the shared demo account (public showcase deploys). */
@@ -97,7 +98,7 @@ export async function demoLoginAction(): Promise<AuthFormState> {
     await signIn("credentials", {
       email: DEMO_EMAIL,
       password: DEMO_PASSWORD,
-      redirectTo: "/dashboard",
+      redirectTo: withBase("/dashboard"),
     });
   } catch (error) {
     if (error instanceof AuthError) {

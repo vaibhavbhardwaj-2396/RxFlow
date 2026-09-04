@@ -14,6 +14,16 @@ const schema = z.object({
   PRESCRIPTION_ENCRYPTION_KEY: z.string().min(16),
   TICK_SECRET: z.string().min(8),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
+  // URL prefix when RxFlow is mounted under a subpath (e.g. "/rxflow"). Empty =
+  // domain root. Must match `basePath` in next.config.ts. NEXT_PUBLIC_APP_URL
+  // above is expected to already include this suffix.
+  NEXT_PUBLIC_BASE_PATH: z
+    .string()
+    .default("")
+    .refine(
+      (v) => v === "" || (/^\/[^/].*$/.test(v) && !v.endsWith("/")),
+      'Use "" or a leading-slash path with no trailing slash, e.g. "/rxflow".',
+    ),
   FEATURE_PRESCRIPTION_UPLOAD: z
     .enum(["true", "false"])
     .default("false")

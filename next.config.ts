@@ -8,7 +8,12 @@ const devAllowedOrigins = process.env.DEV_ALLOWED_ORIGINS?.split(",")
   .map((s) => s.trim())
   .filter(Boolean);
 
+// Serve under a subpath (e.g. "/rxflow" behind another site's proxy). Empty =
+// mounted at the domain root. See src/lib/base-path.ts.
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || undefined;
+
 const nextConfig: NextConfig = {
+  ...(basePath ? { basePath } : {}),
   // Pin the workspace root — a stray package-lock.json in the home directory
   // otherwise makes Turbopack guess the wrong root.
   turbopack: { root: path.resolve(import.meta.dirname) },
