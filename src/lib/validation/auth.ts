@@ -13,10 +13,8 @@ export const registerSchema = credentialsSchema.extend({
   displayName: z
     .string()
     .trim()
-    .min(1)
-    .max(80)
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
+    .min(1, "Enter your name.")
+    .max(80, "Keep your name under 80 characters."),
 });
 
 export type Credentials = z.infer<typeof credentialsSchema>;

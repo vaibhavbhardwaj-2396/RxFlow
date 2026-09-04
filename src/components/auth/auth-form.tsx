@@ -40,7 +40,8 @@ export function AuthForm({ mode, action }: AuthFormProps) {
           label="Name"
           name="displayName"
           autoComplete="name"
-          placeholder="Optional"
+          placeholder="Your name"
+          required
           error={state.fieldErrors?.displayName}
         />
       )}

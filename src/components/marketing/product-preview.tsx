@@ -45,11 +45,14 @@ export function ProductPreview() {
       </div>
 
       <AppFrame>
-        <div className="grid min-w-0">
-          <Panel active={tab === "today"}>
-            <TodayMockup compact />
-          </Panel>
-          <Panel active={tab === "timeline"}>
+        <div
+          key={tab}
+          role="tabpanel"
+          className="min-h-[19rem] min-w-0"
+          style={{ animation: "rx-fade-in 260ms ease" }}
+        >
+          {tab === "today" && <TodayMockup compact />}
+          {tab === "timeline" && (
             <div className="flex flex-col gap-4">
               <PhaseTimeline />
               <div className="rounded-2xl border border-line bg-surface p-4">
@@ -62,33 +65,10 @@ export function ProductPreview() {
                 </div>
               </div>
             </div>
-          </Panel>
-          <Panel active={tab === "calendar"}>
-            <WeekMockup />
-          </Panel>
+          )}
+          {tab === "calendar" && <WeekMockup />}
         </div>
       </AppFrame>
-    </div>
-  );
-}
-
-function Panel({
-  active,
-  children,
-}: {
-  active: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div
-      role="tabpanel"
-      aria-hidden={!active}
-      className={cn(
-        "col-start-1 row-start-1 min-w-0 transition-opacity duration-300",
-        active ? "opacity-100" : "pointer-events-none opacity-0",
-      )}
-    >
-      {children}
     </div>
   );
 }
